@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Hostel Management System</title>
-  <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
   <!-- SheetJS: parses .xlsx/.xls/.csv into JSON in the browser -->
@@ -21,6 +20,8 @@
     .setup-steps { background: #f8f9fa; padding: 1rem; border-radius: 8px; }
     .setup-steps code { background: #e9ecef; padding: 0.2rem 0.4rem; border-radius: 4px; }
     .debug-box { background: #f8f9fa; padding: 0.5rem; border-radius: 4px; font-family: monospace; font-size: 0.8rem; max-height: 150px; overflow-y: auto; }
+    .status-badge { font-size: 0.75rem; }
+    .entity-preview-table th, .entity-preview-table td { white-space: nowrap; font-size: 0.85rem; }
   </style>
 </head>
 <body>
@@ -76,6 +77,7 @@
         <li class="nav-item"><a class="nav-link" data-tab="hostels" href="#">Hostels</a></li>
         <li class="nav-item"><a class="nav-link" data-tab="rooms" href="#">Rooms</a></li>
         <li class="nav-item"><a class="nav-link" data-tab="students" href="#">Students</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="staff" href="#">Staff / Wardens</a></li>
         <li class="nav-item"><a class="nav-link" data-tab="settings" href="#">Settings</a></li>
       </ul>
 
@@ -88,119 +90,22 @@
               <p>Connect your Google Sheet and Apps Script backend in <strong>Settings</strong> to see live data.</p>
               <div id="dashboardStats" class="mt-3">
                 <div class="row g-3">
-                  <div class="col-md-3"><div class="p-3 bg-light rounded"><h5>Hostels</h5><h3 id="statHostels">-</h3></div></div>
-                  <div class="col-md-3"><div class="p-3 bg-light rounded"><h5>Rooms</h5><h3 id="statRooms">-</h3></div></div>
-                  <div class="col-md-3"><div class="p-3 bg-light rounded"><h5>Students</h5><h3 id="statStudents">-</h3></div></div>
-                  <div class="col-md-3"><div class="p-3 bg-light rounded"><h5>Bookings</h5><h3 id="statBookings">-</h3></div></div>
+                  <div class="col-6 col-md-3"><div class="p-3 bg-light rounded"><h6 class="text-muted">Hostels</h6><h3 id="statHostels">-</h3></div></div>
+                  <div class="col-6 col-md-3"><div class="p-3 bg-light rounded"><h6 class="text-muted">Rooms</h6><h3 id="statRooms">-</h3></div></div>
+                  <div class="col-6 col-md-3"><div class="p-3 bg-light rounded"><h6 class="text-muted">Students</h6><h3 id="statStudents">-</h3></div></div>
+                  <div class="col-6 col-md-3"><div class="p-3 bg-light rounded"><h6 class="text-muted">Staff</h6><h3 id="statStaff">-</h3></div></div>
+                  <div class="col-6 col-md-3"><div class="p-3 bg-light rounded"><h6 class="text-muted">Guest Bookings</h6><h3 id="statBookings">-</h3></div></div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Hostels -->
-        <div id="tab-hostels" class="tab-pane hidden">
-          <div class="card mb-3">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <span>Add Hostel</span>
-              <div>
-                <button class="btn btn-sm btn-outline-primary active" id="btnModeType" type="button">
-                  <i class="bi bi-keyboard"></i> Type Manually
-                </button>
-                <button class="btn btn-sm btn-outline-primary" id="btnModeExcel" type="button">
-                  <i class="bi bi-file-earmark-excel"></i> Upload Excel
-                </button>
-              </div>
-            </div>
-            <div class="card-body">
-
-              <!-- Manual entry form -->
-              <form id="hostelForm">
-                <div class="row g-3">
-                  <div class="col-md-4">
-                    <label class="form-label">Hostel Name</label>
-                    <input class="form-control" id="hName" required>
-                  </div>
-                  <div class="col-md-3">
-                    <label class="form-label">Hostel Type</label>
-                    <select class="form-select" id="hType" required>
-                      <option value="">Select...</option>
-                      <option value="Boys Hostel">Boys Hostel</option>
-                      <option value="Girls Hostel">Girls Hostel</option>
-                    </select>
-                  </div>
-                  <div class="col-md-2">
-                    <label class="form-label">No. of Floors</label>
-                    <input type="number" min="0" class="form-control" id="hFloors" required>
-                  </div>
-                  <div class="col-md-3">
-                    <label class="form-label">Status</label>
-                    <select class="form-select" id="hStatus">
-                      <option value="Active" selected>Active</option>
-                      <option value="Inactive">Inactive</option>
-                    </select>
-                  </div>
-                  <div class="col-md-5">
-                    <label class="form-label">Address</label>
-                    <input class="form-control" id="hAddress">
-                  </div>
-                  <div class="col-md-4">
-                    <label class="form-label">Chief Warden</label>
-                    <input class="form-control" id="hWarden">
-                  </div>
-                  <div class="col-md-3">
-                    <label class="form-label">Phone</label>
-                    <input class="form-control" id="hPhone">
-                  </div>
-                </div>
-                <button type="submit" class="btn btn-success mt-3"><i class="bi bi-plus-circle"></i> Add Hostel</button>
-              </form>
-
-              <!-- Excel upload -->
-              <div id="excelUploadBlock" class="hidden">
-                <div class="mb-3">
-                  <label class="form-label">Select Excel File (.xlsx / .xls / .csv)</label>
-                  <input type="file" class="form-control" id="hostelExcelFile" accept=".xlsx,.xls,.csv">
-                  <div class="form-text">
-                    Expected columns: <code>Hostel Name</code>, <code>Hostel Type</code> (Boys Hostel / Girls Hostel), <code>No of Floors</code>, <code>Address</code>, <code>Chief Warden</code>, <code>Phone</code>, <code>Status</code>.
-                  </div>
-                </div>
-                <div id="excelPreviewWrap" class="hidden">
-                  <div class="table-responsive mb-2" style="max-height:250px;overflow-y:auto;">
-                    <table class="table table-sm table-bordered" id="excelPreviewTable"></table>
-                  </div>
-                  <button class="btn btn-success" id="btnConfirmExcelUpload"><i class="bi bi-cloud-upload"></i> Upload All Rows</button>
-                  <span class="text-muted ms-2" id="excelRowCount"></span>
-                </div>
-              </div>
-
-              <div id="hostelFormStatus" class="mt-2"></div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <span>Hostels</span>
-              <button class="btn btn-sm btn-primary" id="refreshHostels"><i class="bi bi-arrow-repeat"></i> Refresh</button>
-            </div>
-            <div class="card-body">
-              <table class="table table-striped" id="hostelsTable">
-                <thead><tr><th>Name</th><th>Type</th><th>Floors</th><th>Address</th><th>Chief Warden</th><th>Phone</th><th>Status</th></tr></thead>
-                <tbody id="hostelsBody"><tr><td colspan="7" class="text-muted">No data. Connect your sheet first.</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- Rooms -->
-        <div id="tab-rooms" class="tab-pane hidden">
-          <div class="card"><div class="card-header">Rooms <button class="btn btn-sm btn-primary ms-2" id="refreshRooms"><i class="bi bi-arrow-repeat"></i> Refresh</button></div><div class="card-body"><table class="table table-striped"><thead><tr><th>Number</th><th>Category</th><th>Type</th><th>Capacity</th><th>Status</th></tr></thead><tbody id="roomsBody"><tr><td colspan="5" class="text-muted">No data</td></tr></tbody></table></div></div>
-        </div>
-
-        <!-- Students -->
-        <div id="tab-students" class="tab-pane hidden">
-          <div class="card"><div class="card-header">Students <button class="btn btn-sm btn-primary ms-2" id="refreshStudents"><i class="bi bi-arrow-repeat"></i> Refresh</button></div><div class="card-body"><table class="table table-striped"><thead><tr><th>Roll No</th><th>Name</th><th>Department</th><th>Room</th></tr></thead><tbody id="studentsBody"><tr><td colspan="4" class="text-muted">No data</td></tr></tbody></table></div></div>
-        </div>
+        <!-- Hostels / Rooms / Students / Staff: filled in dynamically -->
+        <div id="tab-hostels" class="tab-pane hidden"><div id="entity-hostel"></div></div>
+        <div id="tab-rooms" class="tab-pane hidden"><div id="entity-room"></div></div>
+        <div id="tab-students" class="tab-pane hidden"><div id="entity-student"></div></div>
+        <div id="tab-staff" class="tab-pane hidden"><div id="entity-staff"></div></div>
 
         <!-- Settings -->
         <div id="tab-settings" class="tab-pane hidden">
@@ -229,7 +134,7 @@
                 <li><strong>Step 1:</strong> Open the Apps Script URL in your browser. You should see <em>"Hostel API is running. Use POST requests."</em></li>
                 <li><strong>Step 2:</strong> If you see a login page or error, you have not deployed correctly. Go to Deploy → New deployment → Web app → set <strong>Execute as: Me</strong> and <strong>Who has access: Anyone</strong>.</li>
                 <li><strong>Step 3:</strong> After redeploy, copy the new URL (ends with <code>/exec</code>) and paste it here.</li>
-                <li><strong>Step 4:</strong> Ensure your Google Sheet has sheets named <code>Hostels</code>, <code>Rooms</code>, <code>Students</code>, <code>GuestBookings</code> with the correct headers.</li>
+                <li><strong>Step 4:</strong> Sheets named <code>Hostels</code>, <code>Rooms</code>, <code>Students</code>, <code>Staff</code>, <code>GuestBookings</code> are created automatically the first time you add a record of that type — you don't need to create them by hand.</li>
               </ul>
             </div>
           </div>
@@ -239,11 +144,12 @@
   </div>
 
   <script>
-    // Fixed credentials
+    // ===================================================================
+    // CONFIG / LOGIN / TABS / UTILITIES
+    // ===================================================================
     const VALID_USER = 'Hostel';
     const VALID_PASS = '123';
 
-    // Pre‑fill with your known URL and sheet ID (for convenience)
     const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbwbFLYKEuyghWNlKarSgSatmPC7QeTw5W8l7s6uhlfYZfo8RCozaoSs1DxW_56TYMQU/exec';
     const DEFAULT_SHEET_ID = '11MfZZudjD-ZktNAmCzb1NkNRjrrjz8B2kCkJyLPU3VA';
 
@@ -252,8 +158,7 @@
       sheetId: localStorage.getItem('hms_sheetId') || DEFAULT_SHEET_ID
     };
 
-    // ===== UTILITY =====
-    function showToast(msg, type='info') {
+    function showToast(msg, type = 'info') {
       const container = document.getElementById('toastContainer');
       const el = document.createElement('div');
       el.className = `alert alert-${type} alert-dismissible fade show`;
@@ -267,7 +172,7 @@
       document.getElementById('spinnerOverlay').classList.toggle('show', show);
     }
 
-    function setConnectionStatus(msg, type='info') {
+    function setConnectionStatus(msg, type = 'info') {
       const el = document.getElementById('connectionStatus');
       if (!el) return;
       el.innerHTML = `<div class="alert alert-${type} mb-0">${msg}</div>`;
@@ -279,7 +184,12 @@
       el.textContent = msg;
     }
 
-    // ===== API CALL (with GET pre‑test) =====
+    function escapeHtml(str) {
+      return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // ===== API CALL (with GET pre-test) =====
     async function testConnection() {
       const urlInput = document.getElementById('apiUrl');
       const sheetInput = document.getElementById('sheetId');
@@ -291,7 +201,6 @@
         return;
       }
 
-      // Normalize URL: ensure it ends with /exec
       let url = apiUrl;
       if (!url.endsWith('/exec')) {
         url = url.replace(/\/$/, '') + '/exec';
@@ -306,32 +215,16 @@
       showSpinner(true);
 
       try {
-        // ---- STEP 1: GET request to verify the URL is alive ----
         setDebug('📡 Sending GET request to ' + url);
-        const getResponse = await fetch(url, {
-          method: 'GET',
-          mode: 'cors'
-        });
-        if (!getResponse.ok) {
-          throw new Error(`GET failed with status ${getResponse.status}: ${getResponse.statusText}`);
-        }
+        const getResponse = await fetch(url, { method: 'GET', mode: 'cors' });
+        if (!getResponse.ok) throw new Error(`GET failed with status ${getResponse.status}: ${getResponse.statusText}`);
         const getText = await getResponse.text();
         setDebug('✅ GET response: ' + getText.substring(0, 100) + (getText.length > 100 ? '...' : ''));
-        if (!getText.includes('Hostel API is running')) {
-          throw new Error('Unexpected GET response: ' + getText);
-        }
+        if (!getText.includes('Hostel API is running')) throw new Error('Unexpected GET response: ' + getText);
 
-        // ---- STEP 2: POST request to test the actual function ----
         setDebug('📡 Sending POST to testConnection...');
-        const payload = {
-          func: 'testConnection',
-          spreadsheetId: sheetId
-        };
-        // IMPORTANT: use text/plain, not application/json. Apps Script Web
-        // Apps don't support the OPTIONS preflight the browser sends for
-        // application/json, so that request gets blocked as "Failed to
-        // fetch" before it ever reaches the script. text/plain is a
-        // CORS-"simple" content type, so no preflight is triggered.
+        const payload = { func: 'testConnection', spreadsheetId: sheetId };
+        // text/plain avoids the CORS preflight Apps Script can't answer.
         const postResponse = await fetch(url, {
           method: 'POST',
           mode: 'cors',
@@ -346,21 +239,15 @@
         setDebug('✅ POST response: ' + JSON.stringify(postData, null, 2));
         if (postData.error) throw new Error(postData.error);
 
-        // ---- Success ----
         setConnectionStatus('✅ Connection successful! Data is accessible.', 'success');
         showToast('Connection successful!', 'success');
 
-        // Save settings
         localStorage.setItem('hms_apiUrl', url);
         localStorage.setItem('hms_sheetId', sheetId);
         config.apiUrl = url;
         config.sheetId = sheetId;
 
-        // Fetch data
-        fetchDashboardStats();
-        fetchHostels();
-        fetchRooms();
-        fetchStudents();
+        fetchAllData();
 
       } catch (err) {
         console.error(err);
@@ -381,7 +268,7 @@
     }
 
     // ===== LOGIN =====
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
       e.preventDefault();
       const u = document.getElementById('username').value.trim();
       const p = document.getElementById('password').value.trim();
@@ -393,19 +280,13 @@
         if (config.sheetId) document.getElementById('sheetId').value = config.sheetId;
         switchTab('dashboard');
         showToast('Login successful', 'success');
-        if (config.apiUrl && config.sheetId) {
-          // Auto‑fetch without testing again
-          fetchDashboardStats();
-          fetchHostels();
-          fetchRooms();
-          fetchStudents();
-        }
+        if (config.apiUrl && config.sheetId) fetchAllData();
       } else {
         showToast('Invalid username or password', 'danger');
       }
     });
 
-    document.getElementById('logoutBtn').addEventListener('click', function() {
+    document.getElementById('logoutBtn').addEventListener('click', function () {
       document.getElementById('appContainer').classList.add('hidden');
       document.getElementById('loginContainer').style.display = 'block';
       document.getElementById('username').value = '';
@@ -420,43 +301,38 @@
       document.querySelectorAll('#mainTabs .nav-link').forEach(link => link.classList.remove('active'));
       const activeLink = document.querySelector(`#mainTabs .nav-link[data-tab="${tab}"]`);
       if (activeLink) activeLink.classList.add('active');
+
+      if (!config.apiUrl || !config.sheetId) return;
+      if (tab === 'dashboard') fetchDashboardStats();
+      if (tab === 'hostels') fetchEntity('hostel');
+      if (tab === 'rooms') fetchEntity('room');
+      if (tab === 'students') fetchEntity('student');
+      if (tab === 'staff') fetchEntity('staff');
     }
 
     document.querySelectorAll('#mainTabs .nav-link').forEach(link => {
-      link.addEventListener('click', function(e) {
+      link.addEventListener('click', function (e) {
         e.preventDefault();
-        const tab = this.dataset.tab;
-        switchTab(tab);
-        if (tab === 'dashboard' && config.apiUrl && config.sheetId) fetchDashboardStats();
-        if (tab === 'hostels' && config.apiUrl && config.sheetId) fetchHostels();
-        if (tab === 'rooms' && config.apiUrl && config.sheetId) fetchRooms();
-        if (tab === 'students' && config.apiUrl && config.sheetId) fetchStudents();
+        switchTab(this.dataset.tab);
       });
     });
 
-    document.getElementById('settingsForm').addEventListener('submit', function(e) {
+    document.getElementById('settingsForm').addEventListener('submit', function (e) {
       e.preventDefault();
       testConnection();
     });
-
     document.getElementById('testConnectionBtn').addEventListener('click', testConnection);
 
-    // ===== FETCH FUNCTIONS =====
+    // ===== CORE API CALL =====
     async function callApi(func, params) {
       if (!config.apiUrl) throw new Error('API URL not set. Go to Settings.');
       if (!config.sheetId) throw new Error('Sheet ID not set. Go to Settings.');
 
-      const url = config.apiUrl;
-      const payload = {
-        func: func,
-        spreadsheetId: config.sheetId,
-        ...params
-      };
+      const payload = { func: func, spreadsheetId: config.sheetId, ...params };
 
-      // text/plain avoids the CORS preflight that Apps Script can't answer
-      // (see comment in testConnection for details). The backend still
-      // parses this as JSON via e.postData.contents.
-      const response = await fetch(url, {
+      // text/plain avoids the CORS preflight that Apps Script can't answer;
+      // the backend parses this body as JSON via e.postData.contents.
+      const response = await fetch(config.apiUrl, {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -477,208 +353,345 @@
         document.getElementById('statHostels').textContent = stats.totalHostels || 0;
         document.getElementById('statRooms').textContent = stats.totalRooms || 0;
         document.getElementById('statStudents').textContent = stats.totalStudents || 0;
+        document.getElementById('statStaff').textContent = stats.totalStaff || 0;
         document.getElementById('statBookings').textContent = stats.totalGuestBookings || 0;
       } catch (err) { console.error(err); }
     }
 
-    async function fetchHostels() {
-      try {
-        const data = await callApi('getHostels', {});
-        const tbody = document.getElementById('hostelsBody');
-        if (!data || data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" class="text-muted">No hostels found</td></tr>';
-          return;
-        }
-        tbody.innerHTML = data.map(h => `<tr><td>${h.name||''}</td><td>${h.type||''}</td><td>${h.floors||0}</td><td>${h.address||''}</td><td>${h.chiefWarden||''}</td><td>${h.phone||''}</td><td>${h.status||'Active'}</td></tr>`).join('');
-      } catch (err) { console.error(err); }
+    function fetchAllData() {
+      fetchDashboardStats();
+      fetchEntity('hostel');
+      fetchEntity('room');
+      fetchEntity('student');
+      fetchEntity('staff');
     }
 
-    async function fetchRooms() {
-      try {
-        const data = await callApi('getRooms', {});
-        const tbody = document.getElementById('roomsBody');
-        if (!data || data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" class="text-muted">No rooms found</td></tr>';
-          return;
-        }
-        tbody.innerHTML = data.map(r => `<tr><td>${r.number||''}</td><td>${r.category||''}</td><td>${r.type||''}</td><td>${r.capacity||0}</td><td>${r.status||'Available'}</td></tr>`).join('');
-      } catch (err) { console.error(err); }
+    // ===================================================================
+    // GENERIC ENTITY MANAGER
+    // One config drives: manual "type it in" form, Excel upload + preview,
+    // and the results table, for Hostels / Rooms / Students / Staff.
+    // ===================================================================
+
+    const ENTITIES = {
+      hostel: {
+        label: 'Hostel',
+        getFunc: 'getHostels', addFunc: 'addHostel', addBulkFunc: 'addHostels',
+        fields: [
+          { id: 'name', label: 'Hostel Name', type: 'text', required: true, excelLabels: ['Hostel Name', 'Name'] },
+          { id: 'type', label: 'Hostel Type', type: 'select', options: ['Boys Hostel', 'Girls Hostel'], required: true, excelLabels: ['Hostel Type', 'Type'] },
+          { id: 'floors', label: 'No. of Floors', type: 'number', required: true, excelLabels: ['No of Floors', 'Floors'] },
+          { id: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive'], default: 'Active', excelLabels: ['Status'] },
+          { id: 'address', label: 'Address', type: 'text', excelLabels: ['Address'] },
+          { id: 'chiefWarden', label: 'Chief Warden', type: 'text', excelLabels: ['Chief Warden', 'Warden'] },
+          { id: 'phone', label: 'Phone', type: 'text', excelLabels: ['Phone'] }
+        ],
+        tableColumns: ['name', 'type', 'floors', 'address', 'chiefWarden', 'phone', 'status']
+      },
+      room: {
+        label: 'Room',
+        getFunc: 'getRooms', addFunc: 'addRoom', addBulkFunc: 'addRooms',
+        fields: [
+          { id: 'hostel', label: 'Hostel Name', type: 'text', required: true, excelLabels: ['Hostel', 'Hostel Name'] },
+          { id: 'floor', label: 'Floor', type: 'text', required: true, excelLabels: ['Floor'] },
+          { id: 'roomNumber', label: 'Room Number', type: 'text', required: true, excelLabels: ['Room Number', 'Room No', 'Number'] },
+          { id: 'category', label: 'Room Category', type: 'select', options: ['Student Room', 'Guest Room'], required: true, excelLabels: ['Room Category', 'Category'] },
+          { id: 'type', label: 'Room Type', type: 'select', options: ['Single', 'Double Sharing', 'Triple Sharing', 'Four Sharing', 'Five Sharing', 'Six Sharing'], required: true, excelLabels: ['Room Type', 'Type'] },
+          { id: 'capacity', label: 'Capacity', type: 'number', required: true, excelLabels: ['Capacity'] },
+          { id: 'bathroom', label: 'Bathroom', type: 'select', options: ['Attached Bathroom', 'Common Bathroom'], excelLabels: ['Bathroom'] },
+          { id: 'ac', label: 'AC / Non AC', type: 'select', options: ['AC', 'Non AC'], excelLabels: ['AC', 'AC/Non AC'] },
+          { id: 'status', label: 'Room Status', type: 'select', options: ['Available', 'Occupied', 'Maintenance'], default: 'Available', excelLabels: ['Status', 'Room Status'] },
+          { id: 'remarks', label: 'Remarks', type: 'text', excelLabels: ['Remarks'] }
+        ],
+        tableColumns: ['hostel', 'floor', 'roomNumber', 'category', 'type', 'capacity', 'bathroom', 'ac', 'status']
+      },
+      student: {
+        label: 'Student',
+        getFunc: 'getStudents', addFunc: 'addStudent', addBulkFunc: 'addStudents',
+        fields: [
+          { id: 'admissionNumber', label: 'Admission Number', type: 'text', excelLabels: ['Admission Number'] },
+          { id: 'rollNumber', label: 'Roll Number', type: 'text', required: true, excelLabels: ['Roll Number', 'Roll No'] },
+          { id: 'name', label: 'Student Name', type: 'text', required: true, excelLabels: ['Student Name', 'Name'] },
+          { id: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female'], required: true, excelLabels: ['Gender'] },
+          { id: 'department', label: 'Department', type: 'text', excelLabels: ['Department'] },
+          { id: 'year', label: 'Year', type: 'text', excelLabels: ['Year'] },
+          { id: 'phone', label: 'Phone', type: 'text', excelLabels: ['Phone'] },
+          { id: 'parentPhone', label: 'Parent Phone', type: 'text', excelLabels: ['Parent Phone'] },
+          { id: 'email', label: 'Email', type: 'text', excelLabels: ['Email'] },
+          { id: 'bloodGroup', label: 'Blood Group', type: 'text', excelLabels: ['Blood Group'] },
+          { id: 'address', label: 'Address', type: 'text', excelLabels: ['Address'] },
+          { id: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive'], default: 'Active', excelLabels: ['Status'] }
+        ],
+        tableColumns: ['rollNumber', 'name', 'department', 'gender', 'phone', 'email', 'status']
+      },
+      staff: {
+        label: 'Staff / Warden',
+        getFunc: 'getStaff', addFunc: 'addStaff', addBulkFunc: 'addStaffs',
+        fields: [
+          { id: 'facultyName', label: 'Faculty Name', type: 'text', required: true, excelLabels: ['Faculty Name', 'Name'] },
+          { id: 'employeeId', label: 'Employee ID', type: 'text', excelLabels: ['Employee ID'] },
+          { id: 'phone', label: 'Phone', type: 'text', excelLabels: ['Phone'] },
+          { id: 'email', label: 'Email', type: 'text', excelLabels: ['Email'] },
+          { id: 'hostel', label: 'Hostel', type: 'text', excelLabels: ['Hostel'] },
+          { id: 'floor', label: 'Floor', type: 'text', excelLabels: ['Floor'] },
+          { id: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive'], default: 'Active', excelLabels: ['Status'] }
+        ],
+        tableColumns: ['facultyName', 'employeeId', 'hostel', 'floor', 'phone', 'email', 'status']
+      }
+    };
+
+    // In-memory Excel preview rows, per entity key.
+    const excelPreviewData = {};
+
+    function columnLabel(colId, fields) {
+      const f = fields.find(f => f.id === colId);
+      return f ? f.label : colId;
     }
 
-    async function fetchStudents() {
-      try {
-        const data = await callApi('getStudents', {});
-        const tbody = document.getElementById('studentsBody');
-        if (!data || data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="4" class="text-muted">No students found</td></tr>';
-          return;
-        }
-        tbody.innerHTML = data.map(s => `<tr><td>${s.rollNo||''}</td><td>${s.name||''}</td><td>${s.department||''}</td><td>${s.roomId||'Not allocated'}</td></tr>`).join('');
-      } catch (err) { console.error(err); }
+    function fieldInputHtml(key, f) {
+      const domId = `f_${key}_${f.id}`;
+      if (f.type === 'select') {
+        const opts = f.options.map(o => `<option value="${escapeHtml(o)}" ${f.default === o ? 'selected' : ''}>${escapeHtml(o)}</option>`).join('');
+        return `<select class="form-select" id="${domId}" ${f.required ? 'required' : ''}>
+                  <option value="">${f.required ? 'Select...' : ''}</option>${opts}
+                </select>`;
+      }
+      return `<input type="${f.type === 'number' ? 'number' : 'text'}" class="form-control" id="${domId}" ${f.required ? 'required' : ''}>`;
     }
 
-    document.getElementById('refreshHostels').addEventListener('click', fetchHostels);
+    function renderEntityUI(key) {
+      const cfg = ENTITIES[key];
+      const container = document.getElementById(`entity-${key}`);
 
-    // ===== HOSTELS: Add manually / Upload Excel =====
-    const HOSTEL_EXPECTED_COLS = ['Hostel Name', 'Hostel Type', 'No of Floors', 'Address', 'Chief Warden', 'Phone', 'Status'];
+      const fieldCols = cfg.fields.map(f => `
+        <div class="col-md-4">
+          <label class="form-label">${escapeHtml(f.label)}</label>
+          ${fieldInputHtml(key, f)}
+        </div>`).join('');
 
-    function setHostelFormStatus(msg, type) {
-      const el = document.getElementById('hostelFormStatus');
+      const tableHeaders = cfg.tableColumns.map(c => `<th>${escapeHtml(columnLabel(c, cfg.fields))}</th>`).join('');
+      const excelColsHint = cfg.fields.map(f => `<code>${escapeHtml(f.excelLabels[0])}</code>`).join(', ');
+
+      container.innerHTML = `
+        <div class="card mb-3">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span>Add ${escapeHtml(cfg.label)}</span>
+            <div>
+              <button class="btn btn-sm btn-outline-primary active" id="btnModeType_${key}" type="button">
+                <i class="bi bi-keyboard"></i> Type Manually
+              </button>
+              <button class="btn btn-sm btn-outline-primary" id="btnModeExcel_${key}" type="button">
+                <i class="bi bi-file-earmark-excel"></i> Upload Excel
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+
+            <form id="form_${key}">
+              <div class="row g-3">${fieldCols}</div>
+              <button type="submit" class="btn btn-success mt-3"><i class="bi bi-plus-circle"></i> Add ${escapeHtml(cfg.label)}</button>
+            </form>
+
+            <div id="excelBlock_${key}" class="hidden">
+              <div class="mb-3">
+                <label class="form-label">Select Excel File (.xlsx / .xls / .csv)</label>
+                <input type="file" class="form-control" id="excelFile_${key}" accept=".xlsx,.xls,.csv">
+                <div class="form-text">Expected columns: ${excelColsHint}.</div>
+              </div>
+              <div id="excelPreviewWrap_${key}" class="hidden">
+                <div class="table-responsive mb-2" style="max-height:280px;overflow-y:auto;">
+                  <table class="table table-sm table-bordered entity-preview-table" id="excelPreviewTable_${key}"></table>
+                </div>
+                <button class="btn btn-success" id="btnConfirmExcel_${key}"><i class="bi bi-cloud-upload"></i> Upload All Rows</button>
+                <span class="text-muted ms-2" id="excelRowCount_${key}"></span>
+              </div>
+            </div>
+
+            <div id="formStatus_${key}" class="mt-2"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>${escapeHtml(cfg.label)}s</span>
+            <button class="btn btn-sm btn-primary" id="refresh_${key}"><i class="bi bi-arrow-repeat"></i> Refresh</button>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-striped">
+                <thead><tr>${tableHeaders}</tr></thead>
+                <tbody id="body_${key}">
+                  <tr><td colspan="${cfg.tableColumns.length}" class="text-muted">No data. Connect your sheet first.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>`;
+
+      wireEntityEvents(key);
+    }
+
+    function setFormStatus(key, msg, type) {
+      const el = document.getElementById(`formStatus_${key}`);
       el.innerHTML = msg ? `<div class="alert alert-${type} py-2 mb-0">${msg}</div>` : '';
     }
 
-    // --- Toggle between "Type Manually" and "Upload Excel" ---
-    const btnModeType = document.getElementById('btnModeType');
-    const btnModeExcel = document.getElementById('btnModeExcel');
-    const hostelForm = document.getElementById('hostelForm');
-    const excelUploadBlock = document.getElementById('excelUploadBlock');
+    function wireEntityEvents(key) {
+      const cfg = ENTITIES[key];
+      const btnType = document.getElementById(`btnModeType_${key}`);
+      const btnExcel = document.getElementById(`btnModeExcel_${key}`);
+      const form = document.getElementById(`form_${key}`);
+      const excelBlock = document.getElementById(`excelBlock_${key}`);
 
-    btnModeType.addEventListener('click', function() {
-      btnModeType.classList.add('active');
-      btnModeExcel.classList.remove('active');
-      hostelForm.classList.remove('hidden');
-      excelUploadBlock.classList.add('hidden');
-      setHostelFormStatus('', '');
-    });
+      btnType.addEventListener('click', () => {
+        btnType.classList.add('active'); btnExcel.classList.remove('active');
+        form.classList.remove('hidden'); excelBlock.classList.add('hidden');
+        setFormStatus(key, '', '');
+      });
+      btnExcel.addEventListener('click', () => {
+        btnExcel.classList.add('active'); btnType.classList.remove('active');
+        excelBlock.classList.remove('hidden'); form.classList.add('hidden');
+        setFormStatus(key, '', '');
+      });
 
-    btnModeExcel.addEventListener('click', function() {
-      btnModeExcel.classList.add('active');
-      btnModeType.classList.remove('active');
-      excelUploadBlock.classList.remove('hidden');
-      hostelForm.classList.add('hidden');
-      setHostelFormStatus('', '');
-    });
-
-    // --- Manual "type it in" form ---
-    hostelForm.addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const hostel = {
-        name: document.getElementById('hName').value.trim(),
-        type: document.getElementById('hType').value,
-        floors: Number(document.getElementById('hFloors').value) || 0,
-        status: document.getElementById('hStatus').value,
-        address: document.getElementById('hAddress').value.trim(),
-        chiefWarden: document.getElementById('hWarden').value.trim(),
-        phone: document.getElementById('hPhone').value.trim()
-      };
-      if (!hostel.name || !hostel.type) {
-        setHostelFormStatus('Please fill in at least Hostel Name and Hostel Type.', 'warning');
-        return;
-      }
-      showSpinner(true);
-      try {
-        await callApi('addHostel', { data: hostel });
-        setHostelFormStatus('✅ Hostel added successfully.', 'success');
-        showToast('Hostel added', 'success');
-        hostelForm.reset();
-        fetchHostels();
-        fetchDashboardStats();
-      } catch (err) {
-        setHostelFormStatus('❌ Failed to add hostel: ' + err.message, 'danger');
-        showToast('Failed to add hostel', 'danger');
-      } finally {
-        showSpinner(false);
-      }
-    });
-
-    // --- Excel upload: parse file client-side with SheetJS, preview, then bulk-send ---
-    let parsedExcelRows = [];
-
-    document.getElementById('hostelExcelFile').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      const previewWrap = document.getElementById('excelPreviewWrap');
-      const previewTable = document.getElementById('excelPreviewTable');
-      const rowCountEl = document.getElementById('excelRowCount');
-      previewWrap.classList.add('hidden');
-      previewTable.innerHTML = '';
-      parsedExcelRows = [];
-      setHostelFormStatus('', '');
-
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        try {
-          const wb = XLSX.read(evt.target.result, { type: 'array' });
-          const sheet = wb.Sheets[wb.SheetNames[0]];
-          const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-
-          if (!rows.length) {
-            setHostelFormStatus('The file has no data rows.', 'warning');
-            return;
-          }
-
-          // Normalize each row to our hostel fields, tolerant of header casing/spacing
-          parsedExcelRows = rows.map(function(row) {
-            const get = (label) => {
-              const key = Object.keys(row).find(k => k.trim().toLowerCase() === label.toLowerCase());
-              return key ? String(row[key]).trim() : '';
-            };
-            return {
-              name: get('Hostel Name') || get('Name'),
-              type: get('Hostel Type') || get('Type'),
-              floors: Number(get('No of Floors') || get('Floors')) || 0,
-              address: get('Address'),
-              chiefWarden: get('Chief Warden') || get('Warden'),
-              phone: get('Phone'),
-              status: get('Status') || 'Active'
-            };
-          }).filter(h => h.name); // skip blank rows
-
-          if (!parsedExcelRows.length) {
-            setHostelFormStatus('Could not find a "Hostel Name" column, or all rows were blank.', 'warning');
-            return;
-          }
-
-          // Build preview table
-          const headerRow = '<thead><tr><th>Name</th><th>Type</th><th>Floors</th><th>Address</th><th>Chief Warden</th><th>Phone</th><th>Status</th></tr></thead>';
-          const bodyRows = parsedExcelRows.map(h =>
-            `<tr><td>${h.name}</td><td>${h.type}</td><td>${h.floors}</td><td>${h.address}</td><td>${h.chiefWarden}</td><td>${h.phone}</td><td>${h.status}</td></tr>`
-          ).join('');
-          previewTable.innerHTML = headerRow + '<tbody>' + bodyRows + '</tbody>';
-          rowCountEl.textContent = parsedExcelRows.length + ' row(s) ready to upload.';
-          previewWrap.classList.remove('hidden');
-
-        } catch (err) {
-          console.error(err);
-          setHostelFormStatus('❌ Could not read this file: ' + err.message, 'danger');
+      // Manual form submit
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const data = {};
+        for (const f of cfg.fields) {
+          const el = document.getElementById(`f_${key}_${f.id}`);
+          let val = el.value.trim ? el.value.trim() : el.value;
+          if (f.type === 'number') val = val === '' ? '' : Number(val);
+          data[f.id] = val;
         }
-      };
-      reader.readAsArrayBuffer(file);
-    });
+        const missing = cfg.fields.filter(f => f.required && !data[f.id] && data[f.id] !== 0);
+        if (missing.length) {
+          setFormStatus(key, `Please fill in: ${missing.map(f => f.label).join(', ')}.`, 'warning');
+          return;
+        }
+        showSpinner(true);
+        try {
+          await callApi(cfg.addFunc, { data });
+          setFormStatus(key, `✅ ${cfg.label} added successfully.`, 'success');
+          showToast(`${cfg.label} added`, 'success');
+          form.reset();
+          fetchEntity(key);
+          fetchDashboardStats();
+        } catch (err) {
+          setFormStatus(key, `❌ Failed to add ${cfg.label.toLowerCase()}: ` + err.message, 'danger');
+          showToast(`Failed to add ${cfg.label.toLowerCase()}`, 'danger');
+        } finally {
+          showSpinner(false);
+        }
+      });
 
-    document.getElementById('btnConfirmExcelUpload').addEventListener('click', async function() {
-      if (!parsedExcelRows.length) return;
-      showSpinner(true);
+      // Excel file selected -> parse + preview
+      document.getElementById(`excelFile_${key}`).addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        const previewWrap = document.getElementById(`excelPreviewWrap_${key}`);
+        const previewTable = document.getElementById(`excelPreviewTable_${key}`);
+        const rowCountEl = document.getElementById(`excelRowCount_${key}`);
+        previewWrap.classList.add('hidden');
+        previewTable.innerHTML = '';
+        excelPreviewData[key] = [];
+        setFormStatus(key, '', '');
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (evt) {
+          try {
+            const wb = XLSX.read(evt.target.result, { type: 'array' });
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+            if (!rows.length) { setFormStatus(key, 'The file has no data rows.', 'warning'); return; }
+
+            const normalized = rows.map(row => {
+              const get = (labels) => {
+                for (const label of labels) {
+                  const k = Object.keys(row).find(k => k.trim().toLowerCase() === label.toLowerCase());
+                  if (k) return String(row[k]).trim();
+                }
+                return '';
+              };
+              const obj = {};
+              cfg.fields.forEach(f => {
+                let val = get(f.excelLabels);
+                if (f.type === 'number') val = val === '' ? '' : Number(val);
+                obj[f.id] = val || (f.default || '');
+              });
+              return obj;
+            }).filter(r => {
+              const reqField = cfg.fields.find(f => f.required);
+              return reqField ? r[reqField.id] : true;
+            });
+
+            if (!normalized.length) {
+              setFormStatus(key, 'Could not match the expected columns, or all rows were blank.', 'warning');
+              return;
+            }
+
+            excelPreviewData[key] = normalized;
+            const headHtml = '<thead><tr>' + cfg.fields.map(f => `<th>${escapeHtml(f.label)}</th>`).join('') + '</tr></thead>';
+            const bodyHtml = '<tbody>' + normalized.map(r =>
+              '<tr>' + cfg.fields.map(f => `<td>${escapeHtml(r[f.id])}</td>`).join('') + '</tr>'
+            ).join('') + '</tbody>';
+            previewTable.innerHTML = headHtml + bodyHtml;
+            rowCountEl.textContent = normalized.length + ' row(s) ready to upload.';
+            previewWrap.classList.remove('hidden');
+          } catch (err) {
+            console.error(err);
+            setFormStatus(key, '❌ Could not read this file: ' + err.message, 'danger');
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      });
+
+      // Confirm bulk upload
+      document.getElementById(`btnConfirmExcel_${key}`).addEventListener('click', async function () {
+        const rows = excelPreviewData[key];
+        if (!rows || !rows.length) return;
+        showSpinner(true);
+        try {
+          const result = await callApi(cfg.addBulkFunc, { data: rows });
+          setFormStatus(key, `✅ Uploaded ${result.added} ${cfg.label.toLowerCase()}(s).` + (result.skipped ? ` Skipped ${result.skipped} invalid row(s).` : ''), 'success');
+          showToast('Excel upload complete', 'success');
+          excelPreviewData[key] = [];
+          document.getElementById(`excelFile_${key}`).value = '';
+          document.getElementById(`excelPreviewWrap_${key}`).classList.add('hidden');
+          fetchEntity(key);
+          fetchDashboardStats();
+        } catch (err) {
+          setFormStatus(key, '❌ Upload failed: ' + err.message, 'danger');
+          showToast('Upload failed', 'danger');
+        } finally {
+          showSpinner(false);
+        }
+      });
+
+      document.getElementById(`refresh_${key}`).addEventListener('click', () => fetchEntity(key));
+    }
+
+    async function fetchEntity(key) {
+      const cfg = ENTITIES[key];
+      const tbody = document.getElementById(`body_${key}`);
       try {
-        const result = await callApi('addHostels', { data: parsedExcelRows });
-        setHostelFormStatus(`✅ Uploaded ${result.added} hostel(s).` + (result.skipped ? ` Skipped ${result.skipped} invalid row(s).` : ''), 'success');
-        showToast('Excel upload complete', 'success');
-        parsedExcelRows = [];
-        document.getElementById('hostelExcelFile').value = '';
-        document.getElementById('excelPreviewWrap').classList.add('hidden');
-        fetchHostels();
-        fetchDashboardStats();
+        const data = await callApi(cfg.getFunc, {});
+        if (!data || data.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="${cfg.tableColumns.length}" class="text-muted">No ${cfg.label.toLowerCase()}s found</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = data.map(row =>
+          '<tr>' + cfg.tableColumns.map(c => `<td>${escapeHtml(row[c] != null ? row[c] : '')}</td>`).join('') + '</tr>'
+        ).join('');
       } catch (err) {
-        setHostelFormStatus('❌ Upload failed: ' + err.message, 'danger');
-        showToast('Upload failed', 'danger');
-      } finally {
-        showSpinner(false);
+        console.error(err);
       }
-    });
-    document.getElementById('refreshRooms').addEventListener('click', fetchRooms);
-    document.getElementById('refreshStudents').addEventListener('click', fetchStudents);
+    }
 
     // ===== INIT =====
-    // Pre‑fill with saved or default values
+    Object.keys(ENTITIES).forEach(renderEntityUI);
+
     if (config.apiUrl) document.getElementById('apiUrl').value = config.apiUrl;
     if (config.sheetId) document.getElementById('sheetId').value = config.sheetId;
-
-    // Auto‑test if both values are present
-    if (config.apiUrl && config.sheetId && !localStorage.getItem('hms_connected')) {
-      // Optional: auto‑test on first load
-      // We'll let the user click "Test Connection" manually.
-    }
 
     console.log('Frontend ready. Login with Hostel/123.');
   </script>
