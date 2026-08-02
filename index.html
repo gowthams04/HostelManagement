@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hostel Management System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <!-- SheetJS: parses .xlsx/.xls/.csv into JSON in the browser -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body { background: #f4f6f9; }
+    .login-card { max-width: 420px; margin: 100px auto; }
+    .card { border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+    .hidden { display: none; }
+    .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; max-width: 400px; }
+    .spinner-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.7); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 9998; }
+    .spinner-overlay.show { display: flex; }
+    .tab-pane { padding-top: 1rem; }
+    .setup-steps { background: #f8f9fa; padding: 1rem; border-radius: 8px; }
+    .setup-steps code { background: #e9ecef; padding: 0.2rem 0.4rem; border-radius: 4px; }
+    .debug-box { background: #f8f9fa; padding: 0.5rem; border-radius: 4px; font-family: monospace; font-size: 0.8rem; max-height: 150px; overflow-y: auto; }
+    .status-badge { font-size: 0.75rem; }
+    .entity-preview-table th, .entity-preview-table td { white-space: nowrap; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+
+  <!-- Spinner -->
+  <div class="spinner-overlay" id="spinnerOverlay">
+    <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status"><span class="visually-hidden">Loading...</span></div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- LOGIN -->
+  <div id="loginContainer">
+    <div class="container">
+      <div class="login-card card p-4">
+        <div class="text-center mb-3">
+          <i class="bi bi-building fs-1 text-primary"></i>
+          <h4>Hostel Management</h4>
+          <p class="text-muted">Sign in with your credentials</p>
+        </div>
+        <form id="loginForm">
+          <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input type="text" class="form-control" id="username" value="Hostel" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" id="password" value="123" required>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Sign In</button>
+          <div class="mt-2 text-center text-muted small">Default: Hostel / 123</div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="appContainer" class="hidden">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="container">
+        <a class="navbar-brand" href="#"><i class="bi bi-building me-2"></i>Hostel HMS</a>
+        <div class="ms-auto d-flex align-items-center">
+          <span class="text-white me-3" id="userDisplay">Hostel</span>
+          <button class="btn btn-outline-light btn-sm" id="logoutBtn">Logout</button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container mt-4">
+      <ul class="nav nav-tabs mb-3" id="mainTabs">
+        <li class="nav-item"><a class="nav-link active" data-tab="dashboard" href="#">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="hostels" href="#">Hostels</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="rooms" href="#">Rooms</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="students" href="#">Students</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="staff" href="#">Staff / Wardens</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="settings" href="#">Settings</a></li>
+      </ul>
+
+      <div id="tabContent">
+        <!-- Dashboard -->
+        <div id="tab-dashboard" class="tab-pane">
+          <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">Overview</h5>
+              <div id="dashboardStats" class="mt-3">
+                <div class="row g-3">
+                  <div class="col-6 col-md-2"><div class="p-3 bg-light rounded"><h6 class="text-muted mb-1">Hostels</h6><h3 id="statHostels">-</h3></div></div>
+                  <div class="col-6 col-md-2"><div class="p-3 bg-light rounded"><h6 class="text-muted mb-1">Floors</h6><h3 id="statFloors">-</h3></div></div>
+                  <div class="col-6 col-md-2"><div class="p-3 bg-light rounded"><h6 class="text-muted mb-1">Rooms</h6><h3 id="statRooms">-</h3></div></div>
+                  <div class="col-6 col-md-2"><div class="p-3 bg-light rounded"><h6 class="text-muted mb-1">Students</h6><h3 id="statStudents">-</h3></div></div>
+                  <div class="col-6 col-md-2"><div class="p-3 bg-light rounded"><h6 class="text-muted mb-1">Staff</h6><h3 id="statStaff">-</h3></div></div>
+                  <div class="col-6 col-md-2"><div class="p-3 bg-light rounded"><h6 class="text-muted mb-1">Guest Bookings</h6><h3 id="statBookings">-</h3></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="card h-100">
+                <div class="card-header">Students by Gender</div>
+                <div class="card-body">
+                  <div class="d-flex justify-content-between mb-2"><span>Male</span><strong id="statMale">-</strong></div>
+                  <div class="d-flex justify-content-between mb-2"><span>Female</span><strong id="statFemale">-</strong></div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card h-100">
+                <div class="card-header">Student Room Vacancy</div>
+                <div class="card-body">
+                  <div class="d-flex justify-content-between mb-2"><span>Total</span><strong id="statSRTotal">-</strong></div>
+                  <div class="d-flex justify-content-between mb-2"><span class="text-success">Available</span><strong id="statSRAvail">-</strong></div>
+                  <div class="d-flex justify-content-between mb-2"><span class="text-danger">Occupied</span><strong id="statSROcc">-</strong></div>
+                  <div class="d-flex justify-content-between mb-2"><span class="text-warning">Maintenance</span><strong id="statSRMaint">-</strong></div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card h-100">
+                <div class="card-header">Guest Room Vacancy</div>
+                <div class="card-body">
+                  <div class="d-flex justify-content-between mb-2"><span>Total</span><strong id="statGRTotal">-</strong></div>
+                  <div class="d-flex justify-content-between mb-2"><span class="text-success">Available</span><strong id="statGRAvail">-</strong></div>
+                  <div class="d-flex justify-content-between mb-2"><span class="text-danger">Occupied</span><strong id="statGROcc">-</strong></div>
+                  <div class="d-flex justify-content-between mb-2"><span class="text-warning">Maintenance</span><strong id="statGRMaint">-</strong></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+          </div>
+        </div>
+
+        <!-- Hostels / Rooms / Students / Staff: filled in dynamically -->
+        <div id="tab-hostels" class="tab-pane hidden"><div id="entity-hostel"></div></div>
+        <div id="tab-rooms" class="tab-pane hidden"><div id="entity-room"></div></div>
+        <div id="tab-students" class="tab-pane hidden"><div id="entity-student"></div></div>
+        <div id="tab-staff" class="tab-pane hidden"><div id="entity-staff"></div></div>
+
+        <!-- Settings -->
+        <div id="tab-settings" class="tab-pane hidden">
+          <div class="card">
+            <div class="card-header">Settings</div>
+            <div class="card-body">
+              <form id="settingsForm">
+                <div class="mb-3">
+                  <label class="form-label">Google Apps Script Web App URL</label>
+                  <input class="form-control" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec" required>
+                  <div class="form-text text-danger" id="urlHelp">Make sure the URL ends with <strong>/exec</strong></div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Google Sheet ID</label>
+                  <input class="form-control" id="sheetId" placeholder="1ABC... or full URL" required>
+                  <div class="form-text">Paste only the long ID from your sheet URL.</div>
+                </div>
+                <button type="submit" class="btn btn-success">Save &amp; Test</button>
+                <button type="button" class="btn btn-secondary ms-2" id="testConnectionBtn">Test Connection</button>
+              </form>
+              <div id="connectionStatus" class="mt-3"></div>
+              <div id="debugOutput" class="mt-2 debug-box"></div>
+              <hr>
+              <h6>📘 Troubleshooting</h6>
+              <ul class="small">
+                <li><strong>Step 1:</strong> Open the Apps Script URL in your browser. You should see <em>"Hostel API is running. Use POST requests."</em></li>
+                <li><strong>Step 2:</strong> If you see a login page or error, you have not deployed correctly. Go to Deploy → New deployment → Web app → set <strong>Execute as: Me</strong> and <strong>Who has access: Anyone</strong>.</li>
+                <li><strong>Step 3:</strong> After redeploy, copy the new URL (ends with <code>/exec</code>) and paste it here.</li>
+                <li><strong>Step 4:</strong> Sheets named <code>Hostels</code>, <code>Rooms</code>, <code>Students</code>, <code>Staff</code>, <code>GuestBookings</code> are created automatically the first time you add a record of that type — you don't need to create them by hand.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===================================================================
+    // CONFIG / LOGIN / TABS / UTILITIES
+    // ===================================================================
+    const VALID_USER = 'Hostel';
+    const VALID_PASS = '123';
+
+    const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbwbFLYKEuyghWNlKarSgSatmPC7QeTw5W8l7s6uhlfYZfo8RCozaoSs1DxW_56TYMQU/exec';
+    const DEFAULT_SHEET_ID = '11MfZZudjD-ZktNAmCzb1NkNRjrrjz8B2kCkJyLPU3VA';
+
+    let config = {
+      apiUrl: localStorage.getItem('hms_apiUrl') || DEFAULT_API_URL,
+      sheetId: localStorage.getItem('hms_sheetId') || DEFAULT_SHEET_ID
+    };
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const el = document.createElement('div');
+      el.className = `alert alert-${type} alert-dismissible fade show`;
+      el.role = 'alert';
+      el.innerHTML = msg + `<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
+    }
+
+    function showSpinner(show) {
+      document.getElementById('spinnerOverlay').classList.toggle('show', show);
+    }
+
+    function setConnectionStatus(msg, type = 'info') {
+      const el = document.getElementById('connectionStatus');
+      if (!el) return;
+      el.innerHTML = `<div class="alert alert-${type} mb-0">${msg}</div>`;
+    }
+
+    function setDebug(msg) {
+      const el = document.getElementById('debugOutput');
+      if (!el) return;
+      el.textContent = msg;
+    }
+
+    function escapeHtml(str) {
+      return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // ===== API CALL (with GET pre-test) =====
+    async function testConnection() {
+      const urlInput = document.getElementById('apiUrl');
+      const sheetInput = document.getElementById('sheetId');
+      const apiUrl = urlInput.value.trim();
+      const sheetId = sheetInput.value.trim();
+
+      if (!apiUrl || !sheetId) {
+        showToast('Please fill both fields', 'warning');
+        return;
+      }
+
+      let url = apiUrl;
+      if (!url.endsWith('/exec')) {
+        url = url.replace(/\/$/, '') + '/exec';
+      }
+      document.getElementById('apiUrl').value = url;
+
+      config.apiUrl = url;
+      config.sheetId = sheetId;
+
+      setConnectionStatus('Testing connection...', 'info');
+      setDebug('⏳ Contacting server...');
+      showSpinner(true);
+
+      try {
+        setDebug('📡 Sending GET request to ' + url);
+        const getResponse = await fetch(url, { method: 'GET', mode: 'cors' });
+        if (!getResponse.ok) throw new Error(`GET failed with status ${getResponse.status}: ${getResponse.statusText}`);
+        const getText = await getResponse.text();
+        setDebug('✅ GET response: ' + getText.substring(0, 100) + (getText.length > 100 ? '...' : ''));
+        if (!getText.includes('Hostel API is running')) throw new Error('Unexpected GET response: ' + getText);
+
+        setDebug('📡 Sending POST to testConnection...');
+        const payload = { func: 'testConnection', spreadsheetId: sheetId };
+        // text/plain avoids the CORS preflight Apps Script can't answer.
+        const postResponse = await fetch(url, {
+          method: 'POST',
+          mode: 'cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        if (!postResponse.ok) {
+          const errText = await postResponse.text();
+          throw new Error(`POST failed with status ${postResponse.status}: ${errText}`);
+        }
+        const postData = await postResponse.json();
+        setDebug('✅ POST response: ' + JSON.stringify(postData, null, 2));
+        if (postData.error) throw new Error(postData.error);
+
+        setConnectionStatus('✅ Connection successful! Data is accessible.', 'success');
+        showToast('Connection successful!', 'success');
+
+        localStorage.setItem('hms_apiUrl', url);
+        localStorage.setItem('hms_sheetId', sheetId);
+        config.apiUrl = url;
+        config.sheetId = sheetId;
+
+        fetchAllData();
+
+      } catch (err) {
+        console.error(err);
+        setDebug('❌ Error: ' + err.message + '\nFull stack: ' + err.stack);
+        let msg = 'Connection failed: ' + err.message;
+        if (err.message.includes('Failed to fetch')) {
+          msg = 'Failed to reach the Apps Script URL. Make sure the URL is correct and the Web App is deployed with "Anyone" access. Check the debug box for more details.';
+        } else if (err.message.includes('HTTP 404')) {
+          msg = 'The URL is not found. Check that you have deployed the script and the URL ends with /exec.';
+        } else if (err.message.includes('HTTP 403')) {
+          msg = 'Access denied. Set the Web App to "Anyone" (or your domain) in the deployment settings.';
+        }
+        setConnectionStatus('❌ ' + msg, 'danger');
+        showToast(msg, 'danger');
+      } finally {
+        showSpinner(false);
+      }
+    }
+
+    // ===== LOGIN =====
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value.trim();
+      if (u === VALID_USER && p === VALID_PASS) {
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('appContainer').classList.remove('hidden');
+        document.getElementById('userDisplay').textContent = u;
+        if (config.apiUrl) document.getElementById('apiUrl').value = config.apiUrl;
+        if (config.sheetId) document.getElementById('sheetId').value = config.sheetId;
+        switchTab('dashboard');
+        showToast('Login successful', 'success');
+        if (config.apiUrl && config.sheetId) fetchAllData();
+      } else {
+        showToast('Invalid username or password', 'danger');
+      }
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', function () {
+      document.getElementById('appContainer').classList.add('hidden');
+      document.getElementById('loginContainer').style.display = 'block';
+      document.getElementById('username').value = '';
+      document.getElementById('password').value = '';
+      showToast('Logged out', 'info');
+    });
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
+      const pane = document.getElementById(`tab-${tab}`);
+      if (pane) pane.classList.remove('hidden');
+      document.querySelectorAll('#mainTabs .nav-link').forEach(link => link.classList.remove('active'));
+      const activeLink = document.querySelector(`#mainTabs .nav-link[data-tab="${tab}"]`);
+      if (activeLink) activeLink.classList.add('active');
+
+      if (!config.apiUrl || !config.sheetId) return;
+      if (tab === 'dashboard') fetchDashboardStats();
+      if (tab === 'hostels') fetchEntity('hostel');
+      if (tab === 'rooms') { fetchEntity('hostel'); fetchEntity('room'); }
+      if (tab === 'students') fetchEntity('student');
+      if (tab === 'staff') { fetchEntity('hostel'); fetchEntity('room'); fetchEntity('staff'); }
+    }
+
+    document.querySelectorAll('#mainTabs .nav-link').forEach(link => {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        switchTab(this.dataset.tab);
+      });
+    });
+
+    document.getElementById('settingsForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      testConnection();
+    });
+    document.getElementById('testConnectionBtn').addEventListener('click', testConnection);
+
+    // ===== CORE API CALL =====
+    async function callApi(func, params) {
+      if (!config.apiUrl) throw new Error('API URL not set. Go to Settings.');
+      if (!config.sheetId) throw new Error('Sheet ID not set. Go to Settings.');
+
+      const payload = { func: func, spreadsheetId: config.sheetId, ...params };
+
+      // text/plain avoids the CORS preflight that Apps Script can't answer;
+      // the backend parses this body as JSON via e.postData.contents.
+      const response = await fetch(config.apiUrl, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${text}`);
+      }
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      return data.result;
+    }
+
+    async function fetchDashboardStats() {
+      try {
+        const stats = await callApi('getDashboardStats', {});
+        document.getElementById('statHostels').textContent = stats.totalHostels || 0;
+        document.getElementById('statFloors').textContent = stats.totalFloors || 0;
+        document.getElementById('statRooms').textContent = stats.totalRooms || 0;
+        document.getElementById('statStudents').textContent = stats.totalStudents || 0;
+        document.getElementById('statStaff').textContent = stats.totalStaff || 0;
+        document.getElementById('statBookings').textContent = stats.totalGuestBookings || 0;
+
+        document.getElementById('statMale').textContent = stats.maleStudents || 0;
+        document.getElementById('statFemale').textContent = stats.femaleStudents || 0;
+
+        const sr = stats.studentRooms || {};
+        document.getElementById('statSRTotal').textContent = sr.total || 0;
+        document.getElementById('statSRAvail').textContent = sr.available || 0;
+        document.getElementById('statSROcc').textContent = sr.occupied || 0;
+        document.getElementById('statSRMaint').textContent = sr.maintenance || 0;
+
+        const gr = stats.guestRooms || {};
+        document.getElementById('statGRTotal').textContent = gr.total || 0;
+        document.getElementById('statGRAvail').textContent = gr.available || 0;
+        document.getElementById('statGROcc').textContent = gr.occupied || 0;
+        document.getElementById('statGRMaint').textContent = gr.maintenance || 0;
+      } catch (err) { console.error(err); }
+    }
+
+    function fetchAllData() {
+      fetchDashboardStats();
+      fetchEntity('hostel');
+      fetchEntity('room');
+      fetchEntity('student');
+      fetchEntity('staff');
+    }
+
+    // ===================================================================
+    // GENERIC ENTITY MANAGER
+    // One config drives: manual "type it in" form, Excel upload + preview,
+    // and the results table, for Hostels / Rooms / Students / Staff.
+    // ===================================================================
+
+    const ENTITIES = {
+      hostel: {
+        label: 'Hostel',
+        getFunc: 'getHostels', addFunc: 'addHostel', addBulkFunc: 'addHostels',
+        fields: [
+          { id: 'name', label: 'Hostel Name', type: 'text', required: true, excelLabels: ['Hostel Name', 'Name'] },
+          { id: 'type', label: 'Hostel Type', type: 'select', options: ['Boys Hostel', 'Girls Hostel'], required: true, excelLabels: ['Hostel Type', 'Type'] },
+          { id: 'floors', label: 'No. of Floors', type: 'number', required: true, excelLabels: ['No of Floors', 'Floors'] },
+          { id: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive'], default: 'Active', excelLabels: ['Status'] },
+          { id: 'address', label: 'Address', type: 'text', excelLabels: ['Address'] },
+          { id: 'chiefWarden', label: 'Chief Warden', type: 'text', excelLabels: ['Chief Warden', 'Warden'] },
+          { id: 'phone', label: 'Phone', type: 'text', excelLabels: ['Phone'] }
+        ],
+        tableColumns: ['name', 'type', 'floors', 'address', 'chiefWarden', 'phone', 'status'],
+        sampleRows: [
+          { name: 'KPR Boys Hostel 1', type: 'Boys Hostel', floors: 4, status: 'Active', address: 'Near Main Gate, College Campus', chiefWarden: 'Dr. R. Senthil Kumar', phone: '9876543210' },
+          { name: 'KPR Boys Hostel 2', type: 'Boys Hostel', floors: 3, status: 'Active', address: 'Behind Sports Complex', chiefWarden: 'Prof. M. Arun', phone: '9876543211' },
+          { name: 'KPR Girls Hostel', type: 'Girls Hostel', floors: 5, status: 'Active', address: 'Opposite Library Block', chiefWarden: 'Dr. S. Priya', phone: '9876543212' }
+        ],
+        readmeLines: [
+          'Delete these sample rows and add your own — or edit them in place.',
+          'Do not rename, add, or remove any column header in row 1.',
+          'Hostel Type must be exactly "Boys Hostel" or "Girls Hostel".',
+          'Hostel Name is required. All other columns are optional.'
+        ]
+      },
+      room: {
+        label: 'Room',
+        getFunc: 'getRooms', addFunc: 'addRoom', addBulkFunc: 'addRooms',
+        fields: [
+          { id: 'hostel', label: 'Hostel Name', type: 'entity-select', refEntity: 'hostel', refValueField: 'name', required: true, excelLabels: ['Hostel', 'Hostel Name'] },
+          { id: 'floor', label: 'Floor', type: 'text', required: true, excelLabels: ['Floor'] },
+          { id: 'roomNumber', label: 'Room Number', type: 'text', required: true, excelLabels: ['Room Number', 'Room No', 'Number'] },
+          { id: 'category', label: 'Room Category', type: 'select', options: ['Student Room', 'Guest Room'], required: true, excelLabels: ['Room Category', 'Category'] },
+          { id: 'type', label: 'Room Type', type: 'select', options: ['Single', 'Double Sharing', 'Triple Sharing', 'Four Sharing', 'Five Sharing', 'Six Sharing'], required: true, excelLabels: ['Room Type', 'Type'] },
+          { id: 'capacity', label: 'Capacity', type: 'number', required: true, excelLabels: ['Capacity'] },
+          { id: 'bathroom', label: 'Bathroom', type: 'select', options: ['Attached Bathroom', 'Common Bathroom'], excelLabels: ['Bathroom'] },
+          { id: 'ac', label: 'AC / Non AC', type: 'select', options: ['AC', 'Non AC'], excelLabels: ['AC', 'AC/Non AC'] },
+          { id: 'status', label: 'Room Status', type: 'select', options: ['Available', 'Occupied', 'Maintenance'], default: 'Available', excelLabels: ['Status', 'Room Status'] },
+          { id: 'remarks', label: 'Remarks', type: 'text', excelLabels: ['Remarks'] }
+        ],
+        tableColumns: ['hostel', 'floor', 'roomNumber', 'category', 'type', 'capacity', 'bathroom', 'ac', 'status'],
+        sampleRows: [
+          { hostel: 'KPR Boys Hostel 1', floor: 'Ground', roomNumber: '101', category: 'Student Room', type: 'Double Sharing', capacity: 2, bathroom: 'Attached Bathroom', ac: 'Non AC', status: 'Available', remarks: '' },
+          { hostel: 'KPR Boys Hostel 1', floor: 'Ground', roomNumber: '102', category: 'Student Room', type: 'Triple Sharing', capacity: 3, bathroom: 'Common Bathroom', ac: 'Non AC', status: 'Occupied', remarks: '' },
+          { hostel: 'KPR Boys Hostel 1', floor: 'Third', roomNumber: 'G1', category: 'Guest Room', type: 'Single', capacity: 1, bathroom: 'Attached Bathroom', ac: 'AC', status: 'Available', remarks: 'Reserved for faculty guests' },
+          { hostel: 'KPR Girls Hostel', floor: 'First', roomNumber: '201', category: 'Student Room', type: 'Double Sharing', capacity: 2, bathroom: 'Attached Bathroom', ac: 'AC', status: 'Available', remarks: '' },
+          { hostel: 'KPR Girls Hostel', floor: 'Second', roomNumber: '205', category: 'Student Room', type: 'Four Sharing', capacity: 4, bathroom: 'Common Bathroom', ac: 'Non AC', status: 'Maintenance', remarks: 'Fan under repair' }
+        ],
+        readmeLines: [
+          'Add your hostels first — a room can only be saved if its Hostel value already exists.',
+          'Delete these sample rows and add your own — or edit them in place.',
+          'Do not rename, add, or remove any column header in row 1.',
+          'Hostel, Floor, Room Number, Room Category, Room Type, and Capacity are required.',
+          'If a row\'s Hostel name doesn\'t exactly match a saved hostel, that row is skipped on upload.'
+        ]
+      },
+      student: {
+        label: 'Student',
+        getFunc: 'getStudents', addFunc: 'addStudent', addBulkFunc: 'addStudents',
+        fields: [
+          { id: 'rollNumber', label: 'Roll Number', type: 'text', required: true, excelLabels: ['Roll Number', 'Roll No'] },
+          { id: 'name', label: 'Student Name', type: 'text', required: true, excelLabels: ['Student Name', 'Name'] },
+          { id: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female'], required: true, excelLabels: ['Gender'] },
+          { id: 'department', label: 'Department', type: 'text', excelLabels: ['Department'] },
+          { id: 'year', label: 'Year', type: 'text', excelLabels: ['Year'] },
+          { id: 'phone', label: 'Phone', type: 'text', excelLabels: ['Phone'] },
+          { id: 'parentPhone', label: 'Parent Phone', type: 'text', excelLabels: ['Parent Phone'] },
+          { id: 'email', label: 'Email', type: 'text', excelLabels: ['Email'] },
+          { id: 'bloodGroup', label: 'Blood Group', type: 'text', excelLabels: ['Blood Group'] },
+          { id: 'address', label: 'Address', type: 'text', excelLabels: ['Address'] },
+          { id: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive'], default: 'Active', excelLabels: ['Status'] }
+        ],
+        tableColumns: ['rollNumber', 'name', 'department', 'gender', 'phone', 'email', 'status'],
+        sampleRows: [
+          { rollNumber: '21CS045', name: 'Arun Kumar S', gender: 'Male', department: 'Computer Science', year: '2nd Year', phone: '9865012345', parentPhone: '9865012399', email: 'arunkumar@example.com', bloodGroup: 'O+', address: '12, Gandhi Street, Coimbatore', status: 'Active' },
+          { rollNumber: '21IT032', name: 'Divya R', gender: 'Female', department: 'Information Technology', year: '3rd Year', phone: '9865012346', parentPhone: '9865012398', email: 'divyar@example.com', bloodGroup: 'B+', address: '45, Anna Nagar, Salem', status: 'Active' },
+          { rollNumber: '22ME019', name: 'Karthik M', gender: 'Male', department: 'Mechanical Engineering', year: '1st Year', phone: '9865012347', parentPhone: '9865012397', email: 'karthikm@example.com', bloodGroup: 'A+', address: '8, Nehru Road, Erode', status: 'Active' },
+          { rollNumber: '21EEE011', name: 'Priya S', gender: 'Female', department: 'Electrical Engineering', year: '2nd Year', phone: '9865012348', parentPhone: '9865012396', email: 'priyas@example.com', bloodGroup: 'AB+', address: '23, Bharathi Street, Tirupur', status: 'Active' }
+        ],
+        readmeLines: [
+          'Delete these sample rows and add your own — or edit them in place.',
+          'Do not rename, add, or remove any column header in row 1.',
+          'Roll Number and Student Name are required. Gender must be exactly "Male" or "Female" if provided.',
+          'Admission Number is not used by this app — don\'t add that column.'
+        ]
+      },
+      staff: {
+        label: 'Staff / Warden',
+        getFunc: 'getStaff', addFunc: 'addStaff', addBulkFunc: 'addStaffs',
+        fields: [
+          { id: 'facultyName', label: 'Faculty Name', type: 'text', required: true, excelLabels: ['Faculty Name', 'Name'] },
+          { id: 'employeeId', label: 'Employee ID', type: 'text', excelLabels: ['Employee ID'] },
+          { id: 'phone', label: 'Phone', type: 'text', excelLabels: ['Phone'] },
+          { id: 'email', label: 'Email', type: 'text', excelLabels: ['Email'] },
+          { id: 'hostel', label: 'Hostel', type: 'entity-select', refEntity: 'hostel', refValueField: 'name', excelLabels: ['Hostel'] },
+          { id: 'floor', label: 'Floor', type: 'dependent-select', sourceEntity: 'room', sourceField: 'floor', dependsOn: 'hostel', sourceFilterField: 'hostel', excelLabels: ['Floor'] },
+          { id: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive'], default: 'Active', excelLabels: ['Status'] }
+        ],
+        tableColumns: ['facultyName', 'employeeId', 'hostel', 'floor', 'phone', 'email', 'status'],
+        sampleRows: [
+          { facultyName: 'Dr. R. Senthil Kumar', employeeId: 'EMP1001', phone: '9876543210', email: 'senthil.kumar@college.edu', hostel: 'KPR Boys Hostel 1', floor: 'Ground', status: 'Active' },
+          { facultyName: 'Prof. M. Arun', employeeId: 'EMP1002', phone: '9876543211', email: 'arun.m@college.edu', hostel: 'KPR Boys Hostel 1', floor: 'Third', status: 'Active' },
+          { facultyName: 'Dr. S. Priya', employeeId: 'EMP1003', phone: '9876543212', email: 'priya.s@college.edu', hostel: 'KPR Girls Hostel', floor: 'First', status: 'Active' }
+        ],
+        readmeLines: [
+          'Delete these sample rows and add your own — or edit them in place.',
+          'Do not rename, add, or remove any column header in row 1.',
+          'Faculty Name is required. Hostel and Floor are optional, but if a Hostel is given, it must already exist.'
+        ]
+      }
+    };
+
+    // In-memory Excel preview rows, per entity key.
+    const excelPreviewData = {};
+    // Cache of the most recently fetched records per entity, used to filter
+    // dependent-select dropdowns (e.g. Staff's Floor list, filtered by the
+    // Hostel chosen in the same form).
+    const entityDataCache = { hostel: [], room: [], student: [], staff: [] };
+
+    function columnLabel(colId, fields) {
+      const f = fields.find(f => f.id === colId);
+      return f ? f.label : colId;
+    }
+
+    function fieldInputHtml(key, f) {
+      const domId = `f_${key}_${f.id}`;
+      if (f.type === 'entity-select') {
+        // Populated dynamically by refreshEntitySelects() once the
+        // referenced entity's data has loaded (e.g. Hostels for Rooms).
+        return `<select class="form-select" id="${domId}" data-ref-entity="${f.refEntity}" ${f.required ? 'required' : ''}>
+                  <option value="">Loading ${escapeHtml(ENTITIES[f.refEntity].label.toLowerCase())}s...</option>
+                </select>`;
+      }
+      if (f.type === 'dependent-select') {
+        // Populated by updateDependentSelect() based on the value of
+        // another field in the same form (e.g. Floor, filtered by Hostel).
+        return `<select class="form-select" id="${domId}" ${f.required ? 'required' : ''}>
+                  <option value="">Select a ${escapeHtml(ENTITIES[key].fields.find(x => x.id === f.dependsOn).label.toLowerCase())} first</option>
+                </select>`;
+      }
+      if (f.type === 'select') {
+        const opts = f.options.map(o => `<option value="${escapeHtml(o)}" ${f.default === o ? 'selected' : ''}>${escapeHtml(o)}</option>`).join('');
+        return `<select class="form-select" id="${domId}" ${f.required ? 'required' : ''}>
+                  <option value="">${f.required ? 'Select...' : ''}</option>${opts}
+                </select>`;
+      }
+      return `<input type="${f.type === 'number' ? 'number' : 'text'}" class="form-control" id="${domId}" ${f.required ? 'required' : ''}>`;
+    }
+
+    // Refreshes a dependent-select (e.g. Staff's Floor) using the current
+    // value of the field it depends on (e.g. Staff's Hostel), filtering the
+    // source entity's cached records by sourceFilterField === that value.
+    function updateDependentSelect(key, f) {
+      const sel = document.getElementById(`f_${key}_${f.id}`);
+      const dependsOnEl = document.getElementById(`f_${key}_${f.dependsOn}`);
+      if (!sel || !dependsOnEl) return;
+      const filterValue = dependsOnEl.value;
+      const dependsOnLabel = ENTITIES[key].fields.find(x => x.id === f.dependsOn).label.toLowerCase();
+
+      if (!filterValue) {
+        sel.innerHTML = `<option value="">Select a ${escapeHtml(dependsOnLabel)} first</option>`;
+        return;
+      }
+      const source = entityDataCache[f.sourceEntity] || [];
+      const values = [...new Set(
+        source
+          .filter(r => String(r[f.sourceFilterField] || '').trim() === String(filterValue).trim())
+          .map(r => String(r[f.sourceField] || '').trim())
+          .filter(Boolean)
+      )];
+      const current = sel.value;
+      sel.innerHTML = values.length
+        ? '<option value="">Select...</option>' + values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('')
+        : `<option value="">No floors found for this ${escapeHtml(dependsOnLabel)} yet</option>`;
+      if (values.includes(current)) sel.value = current;
+    }
+
+    // Refreshes every dependent-select on the page whose source entity is
+    // `sourceEntityKey` (called after that entity's data is (re)fetched).
+    function refreshDependentSelects(sourceEntityKey) {
+      Object.keys(ENTITIES).forEach(key => {
+        ENTITIES[key].fields
+          .filter(f => f.type === 'dependent-select' && f.sourceEntity === sourceEntityKey)
+          .forEach(f => updateDependentSelect(key, f));
+      });
+    }
+
+    // Fills every <select data-ref-entity="X"> on the page with the current
+    // values of X's identifying field (e.g. every Hostel's name), preserving
+    // the currently selected value if it's still valid.
+    function refreshEntitySelects(refEntityKey, records, refValueField) {
+      const values = [...new Set(records.map(r => String(r[refValueField] || '').trim()).filter(Boolean))];
+      document.querySelectorAll(`select[data-ref-entity="${refEntityKey}"]`).forEach(sel => {
+        const current = sel.value;
+        const optsHtml = values.length
+          ? values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('')
+          : '';
+        const placeholder = values.length
+          ? '<option value="">Select...</option>'
+          : `<option value="">No ${escapeHtml(ENTITIES[refEntityKey].label.toLowerCase())}s yet — add one first</option>`;
+        sel.innerHTML = placeholder + optsHtml;
+        if (values.includes(current)) sel.value = current;
+      });
+    }
+
+    // Builds and downloads a ready-to-fill sample .xlsx for this entity,
+    // entirely in the browser (via SheetJS) — headers in row 1 matching
+    // exactly what the Excel-upload parser expects, a few example rows,
+    // and a second "Read Me" sheet (ignored by the upload parser, which
+    // only reads the first sheet).
+    function downloadSampleExcel(key) {
+      const cfg = ENTITIES[key];
+      const headers = cfg.fields.map(f => f.excelLabels[0]);
+      const dataRows = (cfg.sampleRows || []).map(row =>
+        cfg.fields.map(f => row[f.id] !== undefined ? row[f.id] : '')
+      );
+
+      const wsData = [headers, ...dataRows];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length + 4, 14) }));
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, cfg.label.replace(/[\\/*?:[\]]/g, ''));
+
+      const readmeRows = [
+        [`How to use this file — ${cfg.label}`],
+        [''],
+        ...(cfg.readmeLines || []).map(line => [line]),
+        [''],
+        ['This "Read Me" sheet is ignored on upload — only the first sheet is read.']
+      ];
+      const wsReadme = XLSX.utils.aoa_to_sheet(readmeRows);
+      wsReadme['!cols'] = [{ wch: 100 }];
+      XLSX.utils.book_append_sheet(wb, wsReadme, 'Read Me');
+
+      const filename = `${cfg.label.replace(/[^a-z0-9]+/gi, '_')}_Sample.xlsx`;
+      XLSX.writeFile(wb, filename);
+    }
+
+    function renderEntityUI(key) {
+      const cfg = ENTITIES[key];
+      const container = document.getElementById(`entity-${key}`);
+
+      const fieldCols = cfg.fields.map(f => `
+        <div class="col-md-4">
+          <label class="form-label">${escapeHtml(f.label)}</label>
+          ${fieldInputHtml(key, f)}
+        </div>`).join('');
+
+      const tableHeaders = cfg.tableColumns.map(c => `<th>${escapeHtml(columnLabel(c, cfg.fields))}</th>`).join('');
+      const excelColsHint = cfg.fields.map(f => `<code>${escapeHtml(f.excelLabels[0])}</code>`).join(', ');
+
+      container.innerHTML = `
+        <div class="card mb-3">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span>Add ${escapeHtml(cfg.label)}</span>
+            <div>
+              <button class="btn btn-sm btn-outline-primary active" id="btnModeType_${key}" type="button">
+                <i class="bi bi-keyboard"></i> Type Manually
+              </button>
+              <button class="btn btn-sm btn-outline-primary" id="btnModeExcel_${key}" type="button">
+                <i class="bi bi-file-earmark-excel"></i> Upload Excel
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+
+            <form id="form_${key}">
+              <div class="row g-3">${fieldCols}</div>
+              <button type="submit" class="btn btn-success mt-3"><i class="bi bi-plus-circle"></i> Add ${escapeHtml(cfg.label)}</button>
+            </form>
+
+            <div id="excelBlock_${key}" class="hidden">
+              <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="form-text mb-0">Expected columns: ${excelColsHint}.</div>
+                <button type="button" class="btn btn-sm btn-outline-success" id="btnSample_${key}">
+                  <i class="bi bi-download"></i> Download Sample Excel
+                </button>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Select Excel File (.xlsx / .xls / .csv)</label>
+                <input type="file" class="form-control" id="excelFile_${key}" accept=".xlsx,.xls,.csv">
+              </div>
+              <div id="excelPreviewWrap_${key}" class="hidden">
+                <div class="table-responsive mb-2" style="max-height:280px;overflow-y:auto;">
+                  <table class="table table-sm table-bordered entity-preview-table" id="excelPreviewTable_${key}"></table>
+                </div>
+                <button class="btn btn-success" id="btnConfirmExcel_${key}"><i class="bi bi-cloud-upload"></i> Upload All Rows</button>
+                <span class="text-muted ms-2" id="excelRowCount_${key}"></span>
+              </div>
+            </div>
+
+            <div id="formStatus_${key}" class="mt-2"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>${escapeHtml(cfg.label)}s</span>
+            <button class="btn btn-sm btn-primary" id="refresh_${key}"><i class="bi bi-arrow-repeat"></i> Refresh</button>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-striped">
+                <thead><tr>${tableHeaders}</tr></thead>
+                <tbody id="body_${key}">
+                  <tr><td colspan="${cfg.tableColumns.length}" class="text-muted">No data. Connect your sheet first.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>`;
+
+      wireEntityEvents(key);
+    }
+
+    function setFormStatus(key, msg, type) {
+      const el = document.getElementById(`formStatus_${key}`);
+      el.innerHTML = msg ? `<div class="alert alert-${type} py-2 mb-0">${msg}</div>` : '';
+    }
+
+    function wireEntityEvents(key) {
+      const cfg = ENTITIES[key];
+      const btnType = document.getElementById(`btnModeType_${key}`);
+      const btnExcel = document.getElementById(`btnModeExcel_${key}`);
+      const form = document.getElementById(`form_${key}`);
+      const excelBlock = document.getElementById(`excelBlock_${key}`);
+
+      btnType.addEventListener('click', () => {
+        btnType.classList.add('active'); btnExcel.classList.remove('active');
+        form.classList.remove('hidden'); excelBlock.classList.add('hidden');
+        setFormStatus(key, '', '');
+      });
+      btnExcel.addEventListener('click', () => {
+        btnExcel.classList.add('active'); btnType.classList.remove('active');
+        excelBlock.classList.remove('hidden'); form.classList.add('hidden');
+        setFormStatus(key, '', '');
+      });
+
+      // Any field that depends on another field (e.g. Floor depends on
+      // Hostel) needs its options rebuilt whenever the controlling field changes.
+      cfg.fields.filter(f => f.type === 'dependent-select').forEach(f => {
+        const dependsOnEl = document.getElementById(`f_${key}_${f.dependsOn}`);
+        if (dependsOnEl) dependsOnEl.addEventListener('change', () => updateDependentSelect(key, f));
+      });
+
+      document.getElementById(`btnSample_${key}`).addEventListener('click', () => downloadSampleExcel(key));
+
+      // Manual form submit
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const data = {};
+        for (const f of cfg.fields) {
+          const el = document.getElementById(`f_${key}_${f.id}`);
+          let val = el.value.trim ? el.value.trim() : el.value;
+          if (f.type === 'number') val = val === '' ? '' : Number(val);
+          data[f.id] = val;
+        }
+        const missing = cfg.fields.filter(f => f.required && !data[f.id] && data[f.id] !== 0);
+        if (missing.length) {
+          setFormStatus(key, `Please fill in: ${missing.map(f => f.label).join(', ')}.`, 'warning');
+          return;
+        }
+        showSpinner(true);
+        try {
+          await callApi(cfg.addFunc, { data });
+          setFormStatus(key, `✅ ${cfg.label} added successfully.`, 'success');
+          showToast(`${cfg.label} added`, 'success');
+          form.reset();
+          fetchEntity(key);
+          fetchDashboardStats();
+        } catch (err) {
+          setFormStatus(key, `❌ Failed to add ${cfg.label.toLowerCase()}: ` + err.message, 'danger');
+          showToast(`Failed to add ${cfg.label.toLowerCase()}`, 'danger');
+        } finally {
+          showSpinner(false);
+        }
+      });
+
+      // Excel file selected -> parse + preview
+      document.getElementById(`excelFile_${key}`).addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        const previewWrap = document.getElementById(`excelPreviewWrap_${key}`);
+        const previewTable = document.getElementById(`excelPreviewTable_${key}`);
+        const rowCountEl = document.getElementById(`excelRowCount_${key}`);
+        previewWrap.classList.add('hidden');
+        previewTable.innerHTML = '';
+        excelPreviewData[key] = [];
+        setFormStatus(key, '', '');
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (evt) {
+          try {
+            const wb = XLSX.read(evt.target.result, { type: 'array' });
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+            if (!rows.length) { setFormStatus(key, 'The file has no data rows.', 'warning'); return; }
+
+            const normalized = rows.map(row => {
+              const get = (labels) => {
+                for (const label of labels) {
+                  const k = Object.keys(row).find(k => k.trim().toLowerCase() === label.toLowerCase());
+                  if (k) return String(row[k]).trim();
+                }
+                return '';
+              };
+              const obj = {};
+              cfg.fields.forEach(f => {
+                let val = get(f.excelLabels);
+                if (f.type === 'number') val = val === '' ? '' : Number(val);
+                obj[f.id] = val || (f.default || '');
+              });
+              return obj;
+            }).filter(r => {
+              const reqField = cfg.fields.find(f => f.required);
+              return reqField ? r[reqField.id] : true;
+            });
+
+            if (!normalized.length) {
+              setFormStatus(key, 'Could not match the expected columns, or all rows were blank.', 'warning');
+              return;
+            }
+
+            excelPreviewData[key] = normalized;
+            const headHtml = '<thead><tr>' + cfg.fields.map(f => `<th>${escapeHtml(f.label)}</th>`).join('') + '</tr></thead>';
+            const bodyHtml = '<tbody>' + normalized.map(r =>
+              '<tr>' + cfg.fields.map(f => `<td>${escapeHtml(r[f.id])}</td>`).join('') + '</tr>'
+            ).join('') + '</tbody>';
+            previewTable.innerHTML = headHtml + bodyHtml;
+            rowCountEl.textContent = normalized.length + ' row(s) ready to upload.';
+            previewWrap.classList.remove('hidden');
+          } catch (err) {
+            console.error(err);
+            setFormStatus(key, '❌ Could not read this file: ' + err.message, 'danger');
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      });
+
+      // Confirm bulk upload
+      document.getElementById(`btnConfirmExcel_${key}`).addEventListener('click', async function () {
+        const rows = excelPreviewData[key];
+        if (!rows || !rows.length) return;
+        showSpinner(true);
+        try {
+          const result = await callApi(cfg.addBulkFunc, { data: rows });
+          setFormStatus(key, `✅ Uploaded ${result.added} ${cfg.label.toLowerCase()}(s).` + (result.skipped ? ` Skipped ${result.skipped} invalid row(s).` : ''), 'success');
+          showToast('Excel upload complete', 'success');
+          excelPreviewData[key] = [];
+          document.getElementById(`excelFile_${key}`).value = '';
+          document.getElementById(`excelPreviewWrap_${key}`).classList.add('hidden');
+          fetchEntity(key);
+          fetchDashboardStats();
+        } catch (err) {
+          setFormStatus(key, '❌ Upload failed: ' + err.message, 'danger');
+          showToast('Upload failed', 'danger');
+        } finally {
+          showSpinner(false);
+        }
+      });
+
+      document.getElementById(`refresh_${key}`).addEventListener('click', () => fetchEntity(key));
+    }
+
+    async function fetchEntity(key) {
+      const cfg = ENTITIES[key];
+      const tbody = document.getElementById(`body_${key}`);
+      try {
+        const data = await callApi(cfg.getFunc, {});
+        entityDataCache[key] = data || [];
+        if (!data || data.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="${cfg.tableColumns.length}" class="text-muted">No ${cfg.label.toLowerCase()}s found</td></tr>`;
+        } else {
+          tbody.innerHTML = data.map(row =>
+            '<tr>' + cfg.tableColumns.map(c => `<td>${escapeHtml(row[c] != null ? row[c] : '')}</td>`).join('') + '</tr>'
+          ).join('');
+        }
+        // If any form on the page has a dropdown that references this
+        // entity (e.g. Room's "Hostel Name" references Hostels), refresh it.
+        refreshEntitySelects(key, data || [], 'name');
+        // Also refresh any dependent-select sourced from this entity
+        // (e.g. Staff's Floor list, sourced from Rooms).
+        refreshDependentSelects(key);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // ===== INIT =====
+    Object.keys(ENTITIES).forEach(renderEntityUI);
+
+    if (config.apiUrl) document.getElementById('apiUrl').value = config.apiUrl;
+    if (config.sheetId) document.getElementById('sheetId').value = config.sheetId;
+
+    console.log('Frontend ready. Login with Hostel/123.');
+  </script>
+</body>
+</html>
