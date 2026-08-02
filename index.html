@@ -18,6 +18,7 @@
     .tab-pane { padding-top: 1rem; }
     .setup-steps { background: #f8f9fa; padding: 1rem; border-radius: 8px; }
     .setup-steps code { background: #e9ecef; padding: 0.2rem 0.4rem; border-radius: 4px; }
+    .debug-box { background: #f8f9fa; padding: 0.5rem; border-radius: 4px; font-family: monospace; font-size: 0.8rem; max-height: 150px; overflow-y: auto; }
   </style>
 </head>
 <body>
@@ -137,61 +138,22 @@
                   <input class="form-control" id="sheetId" placeholder="1ABC... or full URL" required>
                   <div class="form-text">The ID of the sheet containing your data.</div>
                 </div>
-                <button type="submit" class="btn btn-success">Save Settings</button>
+                <button type="submit" class="btn btn-success">Save &amp; Test</button>
                 <button type="button" class="btn btn-secondary ms-2" id="testConnectionBtn">Test Connection</button>
               </form>
               <div id="connectionStatus" class="mt-3"></div>
+              <div id="debugOutput" class="mt-2 debug-box"></div>
               <hr>
-              <h6>📘 How to set up your Google Apps Script backend</h6>
+              <h6>📘 Troubleshooting</h6>
+              <ul class="small">
+                <li><strong>Step 1:</strong> Open the Apps Script URL in your browser. You should see <em>"Hostel API is running. Use POST requests."</em></li>
+                <li><strong>Step 2:</strong> If you see a login page or error, you have not deployed correctly. Go to Deploy → New deployment → Web app → set <strong>Execute as: Me</strong> and <strong>Who has access: Anyone</strong>.</li>
+                <li><strong>Step 3:</strong> After redeploy, copy the new URL (ends with <code>/exec</code>) and paste it here.</li>
+                <li><strong>Step 4:</strong> Ensure your Google Sheet has sheets named <code>Hostels</code>, <code>Rooms</code>, <code>Students</code>, <code>GuestBookings</code> with the correct headers.</li>
+              </ul>
               <div class="setup-steps">
-                <ol class="small">
-                  <li>Create a new Google Apps Script project at <a href="https://script.google.com" target="_blank">script.google.com</a>.</li>
-                  <li>Paste the <strong>backend code</strong> (see below) into <code>Code.gs</code>.</li>
-                  <li>Click <strong>Deploy</strong> → <strong>New deployment</strong> → <strong>Web app</strong>.</li>
-                  <li>Set <strong>Execute as</strong> → <strong>Me</strong> and <strong>Who has access</strong> → <strong>Anyone</strong> (or your domain).</li>
-                  <li>Click <strong>Deploy</strong> and copy the URL (must end with <code>/exec</code>).</li>
-                  <li>Create a Google Sheet with sheets named: <code>Hostels</code>, <code>Rooms</code>, <code>Students</code>, <code>GuestBookings</code>.</li>
-                  <li>Add column headers exactly as shown in the examples below.</li>
-                  <li>Paste the Web App URL and Sheet ID here, then click <strong>Save Settings</strong> and <strong>Test Connection</strong>.</li>
-                </ol>
-                <p class="mb-0"><strong>Sample sheet structure:</strong></p>
-                <ul class="small">
-                  <li><code>Hostels</code>: id, name, type, floors, chiefWarden, phone, status</li>
-                  <li><code>Rooms</code>: id, hostelId, floorId, number, category, type, capacity, bathroom, ac, status</li>
-                  <li><code>Students</code>: id, admissionNo, rollNo, name, gender, department, year, phone, parentPhone, email, bloodGroup, address, status, hostelId, floorId, roomId</li>
-                  <li><code>GuestBookings</code>: id, facultyName, department, guestName, purpose, hostelId, floorId, roomId, checkIn, checkOut, status</li>
-                </ul>
-                <div class="mt-2">
-                  <p class="mb-1"><strong>Backend code (Code.gs):</strong></p>
-                  <pre style="background:#e9ecef;padding:0.5rem;border-radius:4px;font-size:0.75rem;max-height:150px;overflow:auto;">function doPost(e) {
-  try {
-    if (!e || !e.postData) {
-      return ContentService.createTextOutput(JSON.stringify({ error: 'Invalid request: no data received' }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-    var data = JSON.parse(e.postData.contents);
-    var func = data.func;
-    var spreadsheetId = data.spreadsheetId;
-    var result;
-    switch(func) {
-      case 'testConnection': result = { success: true }; break;
-      case 'getDashboardStats': result = getDashboardStats(spreadsheetId); break;
-      case 'getHostels': result = getSheetData(spreadsheetId, 'Hostels'); break;
-      case 'getRooms': result = getSheetData(spreadsheetId, 'Rooms'); break;
-      case 'getStudents': result = getSheetData(spreadsheetId, 'Students'); break;
-      default: throw new Error('Unknown function');
-    }
-    return ContentService.createTextOutput(JSON.stringify({ result: result }))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch(err) {
-    return ContentService.createTextOutput(JSON.stringify({ error: err.message }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
-function getSheetData(id, name) { ... }
-function getDashboardStats(id) { ... }
-function doGet() { return ContentService.createTextOutput('API running.'); }</pre>
-                </div>
+                <p class="mb-0"><strong>Backend code (Code.gs) – already included in the script.</strong></p>
+                <p class="small">If you changed it, make sure <code>doGet</code> returns a plain text response.</p>
               </div>
             </div>
           </div>
@@ -231,45 +193,13 @@ function doGet() { return ContentService.createTextOutput('API running.'); }</pr
       el.innerHTML = `<div class="alert alert-${type} mb-0">${msg}</div>`;
     }
 
-    // ===== API CALL (with detailed error logging) =====
-    async function callApi(func, params) {
-      if (!config.apiUrl) throw new Error('API URL not set. Go to Settings.');
-      if (!config.sheetId) throw new Error('Sheet ID not set. Go to Settings.');
-
-      let url = config.apiUrl;
-      if (!url.endsWith('/exec')) {
-        url = url.replace(/\/$/, '') + '/exec';
-      }
-
-      const payload = {
-        func: func,
-        spreadsheetId: config.sheetId,
-        ...params
-      };
-
-      console.log('➡️ Calling API:', url);
-      console.log('📦 Payload:', payload);
-
-      const response = await fetch(url, {
-        method: 'POST',
-        mode: 'cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        console.error('❌ Response error:', text);
-        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${text}`);
-      }
-
-      const data = await response.json();
-      console.log('✅ Response:', data);
-      if (data.error) throw new Error(data.error);
-      return data.result;
+    function setDebug(msg) {
+      const el = document.getElementById('debugOutput');
+      if (!el) return;
+      el.textContent = msg;
     }
 
-    // ===== TEST CONNECTION =====
+    // ===== API CALL (with GET pre‑test) =====
     async function testConnection() {
       const urlInput = document.getElementById('apiUrl');
       const sheetInput = document.getElementById('sheetId');
@@ -281,21 +211,64 @@ function doGet() { return ContentService.createTextOutput('API running.'); }</pr
         return;
       }
 
-      config.apiUrl = apiUrl;
+      // Normalize URL: ensure it ends with /exec
+      let url = apiUrl;
+      if (!url.endsWith('/exec')) {
+        url = url.replace(/\/$/, '') + '/exec';
+      }
+      document.getElementById('apiUrl').value = url; // update for user
+
+      config.apiUrl = url;
       config.sheetId = sheetId;
 
       setConnectionStatus('Testing connection...', 'info');
+      setDebug('⏳ Contacting server...');
       showSpinner(true);
 
       try {
-        const result = await callApi('testConnection', {});
+        // ---- STEP 1: GET request to verify the URL is alive ----
+        setDebug('📡 Sending GET request to ' + url);
+        const getResponse = await fetch(url, {
+          method: 'GET',
+          mode: 'cors'
+        });
+        if (!getResponse.ok) {
+          throw new Error(`GET failed with status ${getResponse.status}: ${getResponse.statusText}`);
+        }
+        const getText = await getResponse.text();
+        setDebug('✅ GET response: ' + getText.substring(0, 100) + (getText.length > 100 ? '...' : ''));
+        if (!getText.includes('Hostel API is running')) {
+          throw new Error('Unexpected GET response: ' + getText);
+        }
+
+        // ---- STEP 2: POST request to test the actual function ----
+        setDebug('📡 Sending POST to testConnection...');
+        const payload = {
+          func: 'testConnection',
+          spreadsheetId: sheetId
+        };
+        const postResponse = await fetch(url, {
+          method: 'POST',
+          mode: 'cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!postResponse.ok) {
+          const errText = await postResponse.text();
+          throw new Error(`POST failed with status ${postResponse.status}: ${errText}`);
+        }
+        const postData = await postResponse.json();
+        setDebug('✅ POST response: ' + JSON.stringify(postData, null, 2));
+        if (postData.error) throw new Error(postData.error);
+
+        // ---- Success ----
         setConnectionStatus('✅ Connection successful! Data is accessible.', 'success');
         showToast('Connection successful!', 'success');
 
         // Save settings
-        localStorage.setItem('hms_apiUrl', apiUrl);
+        localStorage.setItem('hms_apiUrl', url);
         localStorage.setItem('hms_sheetId', sheetId);
-        config.apiUrl = apiUrl;
+        config.apiUrl = url;
         config.sheetId = sheetId;
 
         // Fetch data
@@ -306,9 +279,10 @@ function doGet() { return ContentService.createTextOutput('API running.'); }</pr
 
       } catch (err) {
         console.error(err);
+        setDebug('❌ Error: ' + err.message + '\nFull stack: ' + err.stack);
         let msg = 'Connection failed: ' + err.message;
         if (err.message.includes('Failed to fetch')) {
-          msg = 'Failed to reach the Apps Script URL. Make sure you have deployed the Web App with "Anyone" access and the URL is correct.';
+          msg = 'Failed to reach the Apps Script URL. Make sure the URL is correct and the Web App is deployed with "Anyone" access.';
         } else if (err.message.includes('HTTP 404')) {
           msg = 'The URL is not found. Check that you have deployed the script and the URL ends with /exec.';
         } else if (err.message.includes('HTTP 403')) {
@@ -335,6 +309,7 @@ function doGet() { return ContentService.createTextOutput('API running.'); }</pr
         switchTab('dashboard');
         showToast('Login successful', 'success');
         if (config.apiUrl && config.sheetId) {
+          // Auto‑fetch without testing again
           fetchDashboardStats();
           fetchHostels();
           fetchRooms();
@@ -382,6 +357,32 @@ function doGet() { return ContentService.createTextOutput('API running.'); }</pr
     document.getElementById('testConnectionBtn').addEventListener('click', testConnection);
 
     // ===== FETCH FUNCTIONS =====
+    async function callApi(func, params) {
+      if (!config.apiUrl) throw new Error('API URL not set. Go to Settings.');
+      if (!config.sheetId) throw new Error('Sheet ID not set. Go to Settings.');
+
+      const url = config.apiUrl;
+      const payload = {
+        func: func,
+        spreadsheetId: config.sheetId,
+        ...params
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${text}`);
+      }
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      return data.result;
+    }
+
     async function fetchDashboardStats() {
       try {
         const stats = await callApi('getDashboardStats', {});
