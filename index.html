@@ -12,9 +12,13 @@
     .login-card { max-width: 420px; margin: 100px auto; }
     .card { border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
     .hidden { display: none; }
-    .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+    .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; max-width: 400px; }
     .spinner-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.7); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 9998; }
     .spinner-overlay.show { display: flex; }
+    .tab-pane { padding-top: 1rem; }
+    .tab-pane .card { margin-bottom: 1rem; }
+    .setup-steps { background: #f8f9fa; padding: 1rem; border-radius: 8px; }
+    .setup-steps code { background: #e9ecef; padding: 0.2rem 0.4rem; border-radius: 4px; }
   </style>
 </head>
 <body>
@@ -52,7 +56,7 @@
     </div>
   </div>
 
-  <!-- ======== APP CONTAINER (after login) ======== -->
+  <!-- ======== APP CONTAINER ======== -->
   <div id="appContainer" class="hidden">
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
       <div class="container">
@@ -129,7 +133,7 @@
                 <div class="mb-3">
                   <label class="form-label">Google Apps Script Web App URL</label>
                   <input class="form-control" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec" required>
-                  <div class="form-text">Paste the deployment URL of your Apps Script backend.</div>
+                  <div class="form-text text-danger" id="urlHelp">Make sure the URL ends with <strong>/exec</strong></div>
                 </div>
                 <div class="mb-3">
                   <label class="form-label">Google Sheet ID or URL</label>
@@ -139,16 +143,67 @@
                 <button type="submit" class="btn btn-success">Save Settings</button>
                 <button type="button" class="btn btn-secondary ms-2" id="testConnectionBtn">Test Connection</button>
               </form>
+              <div id="connectionStatus" class="mt-3"></div>
               <hr>
-              <h6>How to set up your Google Apps Script backend</h6>
-              <ol class="small">
-                <li>Create a new Google Apps Script project.</li>
-                <li>Copy the backend code from below (Code.gs).</li>
-                <li>Deploy as Web App (Execute as: Me, Access: Anyone).</li>
-                <li>Copy the deployment URL and paste it here.</li>
-                <li>Create a Google Sheet with sheets: Hostels, Rooms, Students, etc.</li>
-                <li>Paste its ID here and click Save.</li>
-              </ol>
+              <h6>📘 How to set up your Google Apps Script backend</h6>
+              <div class="setup-steps">
+                <ol class="small">
+                  <li>Create a new Google Apps Script project at <a href="https://script.google.com" target="_blank">script.google.com</a>.</li>
+                  <li>Paste the <strong>backend code</strong> (see below) into <code>Code.gs</code>.</li>
+                  <li>Click <strong>Deploy</strong> → <strong>New deployment</strong> → <strong>Web app</strong>.</li>
+                  <li>Set <strong>Execute as</strong> → <strong>Me</strong> and <strong>Who has access</strong> → <strong>Anyone</strong> (or your domain).</li>
+                  <li>Click <strong>Deploy</strong> and copy the URL (must end with <code>/exec</code>).</li>
+                  <li>Create a Google Sheet with sheets named: <code>Hostels</code>, <code>Rooms</code>, <code>Students</code>, <code>GuestBookings</code>.</li>
+                  <li>Add column headers exactly as shown in the examples below.</li>
+                  <li>Paste the Web App URL and Sheet ID here, then click <strong>Save Settings</strong> and <strong>Test Connection</strong>.</li>
+                </ol>
+                <p class="mb-0"><strong>Sample sheet structure:</strong></p>
+                <ul class="small">
+                  <li><code>Hostels</code>: id, name, type, floors, chiefWarden, phone, status</li>
+                  <li><code>Rooms</code>: id, hostelId, floorId, number, category, type, capacity, bathroom, ac, status</li>
+                  <li><code>Students</code>: id, admissionNo, rollNo, name, gender, department, year, phone, parentPhone, email, bloodGroup, address, status, hostelId, floorId, roomId</li>
+                  <li><code>GuestBookings</code>: id, facultyName, department, guestName, purpose, hostelId, floorId, roomId, checkIn, checkOut, status</li>
+                </ul>
+                <div class="mt-2">
+                  <p class="mb-1"><strong>Backend code (Code.gs):</strong></p>
+                  <pre style="background:#e9ecef;padding:0.5rem;border-radius:4px;font-size:0.75rem;max-height:150px;overflow:auto;">function doPost(e) {
+  var data = JSON.parse(e.postData.contents);
+  var func = data.func;
+  var spreadsheetId = data.spreadsheetId;
+  try {
+    var result;
+    switch(func) {
+      case 'testConnection': result = { success: true }; break;
+      case 'getDashboardStats': result = getDashboardStats(spreadsheetId); break;
+      case 'getHostels': result = getSheetData(spreadsheetId, 'Hostels'); break;
+      case 'getRooms': result = getSheetData(spreadsheetId, 'Rooms'); break;
+      case 'getStudents': result = getSheetData(spreadsheetId, 'Students'); break;
+      default: throw new Error('Unknown function');
+    }
+    return ContentService.createTextOutput(JSON.stringify({ result: result }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({ error: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+function getSheetData(id, name) {
+  var sheet = SpreadsheetApp.openById(id).getSheetByName(name);
+  if(!sheet) return [];
+  var data = sheet.getDataRange().getValues();
+  var headers = data.shift();
+  return data.map(function(row) {
+    var obj = {};
+    headers.forEach(function(h,i) { obj[h] = row[i]; });
+    return obj;
+  });
+}
+function getDashboardStats(id) {
+  return { totalHostels: getSheetData(id,'Hostels').length, totalRooms: getSheetData(id,'Rooms').length, totalStudents: getSheetData(id,'Students').length, totalGuestBookings: getSheetData(id,'GuestBookings').length };
+}
+function doGet() { return ContentService.createTextOutput('Hostel API is running.').setMimeType(ContentService.MimeType.TEXT); }</pre>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -184,25 +239,101 @@
       document.getElementById('spinnerOverlay').classList.toggle('show', show);
     }
 
+    function setConnectionStatus(msg, type='info') {
+      const el = document.getElementById('connectionStatus');
+      if (!el) return;
+      el.innerHTML = `<div class="alert alert-${type} mb-0">${msg}</div>`;
+    }
+
     // ===== API CALL =====
     async function callApi(func, params) {
       if (!config.apiUrl) throw new Error('API URL not set. Go to Settings.');
       if (!config.sheetId) throw new Error('Sheet ID not set. Go to Settings.');
+
+      // Ensure URL ends with /exec
+      let url = config.apiUrl;
+      if (!url.endsWith('/exec')) {
+        url = url.replace(/\/$/, '') + '/exec';
+      }
+
       const payload = {
         func: func,
         spreadsheetId: config.sheetId,
         ...params
       };
-      const response = await fetch(config.apiUrl, {
+
+      const response = await fetch(url, {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
       if (data.error) throw new Error(data.error);
       return data.result;
+    }
+
+    // ===== TEST CONNECTION =====
+    async function testConnection() {
+      const urlInput = document.getElementById('apiUrl');
+      const sheetInput = document.getElementById('sheetId');
+      const apiUrl = urlInput.value.trim();
+      const sheetId = sheetInput.value.trim();
+
+      if (!apiUrl || !sheetId) {
+        showToast('Please fill both fields', 'warning');
+        return;
+      }
+
+      // Update config temporarily
+      config.apiUrl = apiUrl;
+      config.sheetId = sheetId;
+
+      setConnectionStatus('Testing connection...', 'info');
+      showSpinner(true);
+
+      try {
+        // First test: GET request to check if the URL is reachable
+        let getUrl = apiUrl;
+        if (!getUrl.endsWith('/exec')) getUrl = getUrl.replace(/\/$/, '') + '/exec';
+        const getResponse = await fetch(getUrl, { method: 'GET', mode: 'cors' });
+        if (!getResponse.ok) throw new Error(`GET failed with status ${getResponse.status}`);
+        const getText = await getResponse.text();
+        console.log('GET response:', getText);
+
+        // Second test: POST to testConnection function
+        const result = await callApi('testConnection', {});
+        setConnectionStatus('✅ Connection successful! Data is accessible.', 'success');
+        showToast('Connection successful!', 'success');
+
+        // Save settings
+        localStorage.setItem('hms_apiUrl', apiUrl);
+        localStorage.setItem('hms_sheetId', sheetId);
+        config.apiUrl = apiUrl;
+        config.sheetId = sheetId;
+
+        // Fetch data
+        fetchDashboardStats();
+        fetchHostels();
+        fetchRooms();
+        fetchStudents();
+
+      } catch (err) {
+        console.error(err);
+        let msg = 'Connection failed: ' + err.message;
+        if (err.message.includes('Failed to fetch')) {
+          msg = 'Failed to reach the Apps Script URL. Make sure you have deployed the Web App with "Anyone" access and the URL is correct.';
+        }
+        setConnectionStatus('❌ ' + msg, 'danger');
+        showToast(msg, 'danger');
+      } finally {
+        showSpinner(false);
+      }
     }
 
     // ===== LOGIN =====
@@ -243,12 +374,9 @@
 
     // ===== TAB SWITCHING =====
     function switchTab(tab) {
-      // Hide all panes
       document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
-      // Show selected
       const pane = document.getElementById(`tab-${tab}`);
       if (pane) pane.classList.remove('hidden');
-      // Update nav
       document.querySelectorAll('#mainTabs .nav-link').forEach(link => link.classList.remove('active'));
       const activeLink = document.querySelector(`#mainTabs .nav-link[data-tab="${tab}"]`);
       if (activeLink) activeLink.classList.add('active');
@@ -269,37 +397,10 @@
     // ===== SETTINGS SAVE =====
     document.getElementById('settingsForm').addEventListener('submit', function(e) {
       e.preventDefault();
-      const apiUrl = document.getElementById('apiUrl').value.trim();
-      const sheetId = document.getElementById('sheetId').value.trim();
-      if (!apiUrl || !sheetId) { showToast('Please fill both fields', 'danger'); return; }
-      config.apiUrl = apiUrl;
-      config.sheetId = sheetId;
-      localStorage.setItem('hms_apiUrl', apiUrl);
-      localStorage.setItem('hms_sheetId', sheetId);
-      showToast('Settings saved', 'success');
-      // Test connection
-      testConnection();
+      testConnection(); // Save & test in one go
     });
 
     document.getElementById('testConnectionBtn').addEventListener('click', testConnection);
-
-    async function testConnection() {
-      if (!config.apiUrl || !config.sheetId) { showToast('Save settings first', 'warning'); return; }
-      showSpinner(true);
-      try {
-        const result = await callApi('testConnection', {});
-        showToast('Connection successful!', 'success');
-        // Fetch data
-        fetchDashboardStats();
-        fetchHostels();
-        fetchRooms();
-        fetchStudents();
-      } catch (err) {
-        showToast('Connection failed: ' + err.message, 'danger');
-      } finally {
-        showSpinner(false);
-      }
-    }
 
     // ===== FETCH FUNCTIONS =====
     async function fetchDashboardStats() {
@@ -310,7 +411,7 @@
         document.getElementById('statStudents').textContent = stats.totalStudents || 0;
         document.getElementById('statBookings').textContent = stats.totalGuestBookings || 0;
       } catch (err) {
-        showToast('Error fetching stats: ' + err.message, 'danger');
+        console.error('Dashboard stats error:', err);
       }
     }
 
@@ -324,7 +425,7 @@
         }
         tbody.innerHTML = data.map(h => `<tr><td>${h.name||''}</td><td>${h.type||''}</td><td>${h.floors||0}</td><td>${h.status||'Active'}</td></tr>`).join('');
       } catch (err) {
-        showToast('Error fetching hostels: ' + err.message, 'danger');
+        console.error('Hostels fetch error:', err);
       }
     }
 
@@ -338,7 +439,7 @@
         }
         tbody.innerHTML = data.map(r => `<tr><td>${r.number||''}</td><td>${r.category||''}</td><td>${r.type||''}</td><td>${r.capacity||0}</td><td>${r.status||'Available'}</td></tr>`).join('');
       } catch (err) {
-        showToast('Error fetching rooms: ' + err.message, 'danger');
+        console.error('Rooms fetch error:', err);
       }
     }
 
@@ -352,7 +453,7 @@
         }
         tbody.innerHTML = data.map(s => `<tr><td>${s.rollNo||''}</td><td>${s.name||''}</td><td>${s.department||''}</td><td>${s.roomId||'Not allocated'}</td></tr>`).join('');
       } catch (err) {
-        showToast('Error fetching students: ' + err.message, 'danger');
+        console.error('Students fetch error:', err);
       }
     }
 
@@ -362,8 +463,10 @@
     document.getElementById('refreshStudents').addEventListener('click', fetchStudents);
 
     // ===== INIT =====
-    // If already logged in (e.g., page reload), show app if credentials saved?
-    // We'll keep simple: user must log in each session.
+    // Prefill settings if saved
+    if (config.apiUrl) document.getElementById('apiUrl').value = config.apiUrl;
+    if (config.sheetId) document.getElementById('sheetId').value = config.sheetId;
+
     console.log('Frontend ready. Login with Hostel/123.');
   </script>
 
