@@ -247,10 +247,15 @@
           func: 'testConnection',
           spreadsheetId: sheetId
         };
+        // IMPORTANT: use text/plain, not application/json. Apps Script Web
+        // Apps don't support the OPTIONS preflight the browser sends for
+        // application/json, so that request gets blocked as "Failed to
+        // fetch" before it ever reaches the script. text/plain is a
+        // CORS-"simple" content type, so no preflight is triggered.
         const postResponse = await fetch(url, {
           method: 'POST',
           mode: 'cors',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(payload)
         });
         if (!postResponse.ok) {
@@ -368,10 +373,13 @@
         ...params
       };
 
+      // text/plain avoids the CORS preflight that Apps Script can't answer
+      // (see comment in testConnection for details). The backend still
+      // parses this as JSON via e.postData.contents.
       const response = await fetch(url, {
         method: 'POST',
         mode: 'cors',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
       });
       if (!response.ok) {
