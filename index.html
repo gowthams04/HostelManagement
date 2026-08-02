@@ -1,742 +1,371 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Hostel Management System</title>
-  <!-- Bootstrap 5 + Icons -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <!-- DataTables -->
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <!-- SheetJS -->
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-  <!-- jQuery (needed for DataTables) -->
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
   <style>
-    /* ===== GLOBAL STYLES ===== */
-    :root {
-      --sidebar-width: 260px;
-      --navbar-height: 60px;
-      --primary-color: #0d6efd;
-      --light-bg: #f8f9fa;
-      --card-shadow: 0 0.5rem 1rem rgba(0,0,0,0.08);
-    }
-    * { box-sizing: border-box; margin:0; padding:0; }
-    body {
-      font-family: 'Inter', system-ui, sans-serif;
-      background: var(--light-bg);
-      min-height: 100vh;
-      transition: background 0.3s;
-    }
-    body.dark-mode {
-      background: #121316;
-      color: #e9ecef;
-    }
-    body.dark-mode .card { background: #1e2128; border-color: #2d3038; color: #e9ecef; }
-    body.dark-mode .card-header { background: #262a33; border-color: #2d3038; }
-    body.dark-mode .table { color: #e9ecef; }
-    body.dark-mode .table-striped>tbody>tr:nth-of-type(odd)>* { background-color: rgba(255,255,255,0.03); }
-    body.dark-mode .table-bordered { border-color: #2d3038; }
-    body.dark-mode .table-bordered td, body.dark-mode .table-bordered th { border-color: #2d3038; }
-    body.dark-mode .navbar { background: #1a1d23 !important; border-bottom: 1px solid #2d3038; }
-    body.dark-mode .sidebar { background: #16181d !important; border-right: 1px solid #2d3038; }
-    body.dark-mode .sidebar .nav-link { color: #adb5bd; }
-    body.dark-mode .sidebar .nav-link:hover, body.dark-mode .sidebar .nav-link.active { color: #fff; background: rgba(13,110,253,0.2); }
-    body.dark-mode .form-control, body.dark-mode .form-select { background: #1e2128; border-color: #2d3038; color: #e9ecef; }
-    body.dark-mode .modal-content { background: #1e2128; border-color: #2d3038; color: #e9ecef; }
-    body.dark-mode .modal-header, body.dark-mode .modal-footer { border-color: #2d3038; }
-    body.dark-mode .text-muted { color: #adb5bd !important; }
-    body.dark-mode .border { border-color: #2d3038 !important; }
-
-    /* Sidebar */
-    .sidebar {
-      position: fixed; top:0; left:0; bottom:0; width:var(--sidebar-width);
-      background:#fff; border-right:1px solid rgba(0,0,0,0.06); z-index:1050;
-      padding-top:var(--navbar-height); overflow-y:auto;
-      transition: transform 0.3s ease, background 0.3s;
-      box-shadow:2px 0 8px rgba(0,0,0,0.04);
-    }
-    .sidebar .sidebar-brand {
-      position:absolute; top:0; left:0; right:0; height:var(--navbar-height);
-      display:flex; align-items:center; padding:0 1.25rem;
-      font-weight:700; font-size:1.2rem; border-bottom:1px solid rgba(0,0,0,0.06);
-      background:inherit; z-index:1;
-    }
-    .sidebar .sidebar-brand i { font-size:1.6rem; margin-right:0.6rem; color:var(--primary-color); }
-    .sidebar .nav-link {
-      padding:0.65rem 1.25rem; color:#495057; border-radius:0.5rem;
-      margin:0.1rem 0.6rem; transition:0.15s; font-weight:500; font-size:0.9rem;
-      display:flex; align-items:center; gap:0.7rem;
-    }
-    .sidebar .nav-link i { font-size:1.2rem; width:1.5rem; text-align:center; }
-    .sidebar .nav-link:hover { background:rgba(13,110,253,0.08); color:var(--primary-color); }
-    .sidebar .nav-link.active { background:rgba(13,110,253,0.12); color:var(--primary-color); font-weight:600; }
-    .sidebar .nav-section { padding:0.6rem 1.25rem 0.3rem; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.04em; color:#8a8f9a; font-weight:600; }
-
-    /* Main content */
-    .main-content { margin-left:var(--sidebar-width); padding-top:var(--navbar-height); min-height:100vh; transition:margin-left 0.3s; }
-    .main-content .page-content { padding:1.5rem; }
-
-    /* Top navbar */
-    .top-navbar {
-      position:fixed; top:0; left:var(--sidebar-width); right:0; height:var(--navbar-height);
-      background:#fff; border-bottom:1px solid rgba(0,0,0,0.06); z-index:1040;
-      display:flex; align-items:center; padding:0 1.5rem;
-      transition:left 0.3s, background 0.3s;
-    }
-    .top-navbar .toggle-sidebar { display:none; background:none; border:none; font-size:1.5rem; color:#495057; padding:0 0.5rem; }
-    .top-navbar .navbar-brand-mobile { display:none; font-weight:700; font-size:1.1rem; }
-    .top-navbar .navbar-brand-mobile i { color:var(--primary-color); margin-right:0.4rem; }
-
-    /* Cards, badges, tables (minimal) */
-    .stat-card { border:none; border-radius:1rem; box-shadow:var(--card-shadow); transition:transform 0.15s, box-shadow 0.15s; overflow:hidden; }
-    .stat-card:hover { transform:translateY(-3px); box-shadow:0 0.75rem 1.5rem rgba(0,0,0,0.1); }
-    .stat-card .stat-icon { width:48px; height:48px; border-radius:0.75rem; display:flex; align-items:center; justify-content:center; font-size:1.6rem; color:#fff; }
-    .stat-icon.blue { background:#0d6efd; }
-    .stat-icon.green { background:#198754; }
-    .stat-icon.yellow { background:#ffc107; }
-    .stat-icon.red { background:#dc3545; }
-    .stat-icon.purple { background:#6f42c1; }
-    .stat-icon.teal { background:#20c997; }
-    .stat-icon.orange { background:#fd7e14; }
-    .stat-icon.pink { background:#d63384; }
-    .stat-number { font-size:1.8rem; font-weight:700; line-height:1.2; }
-    .stat-label { font-size:0.85rem; color:#6c757d; font-weight:500; text-transform:uppercase; letter-spacing:0.02em; }
-
-    .table-container { background:#fff; border-radius:1rem; padding:1rem 1.25rem; box-shadow:var(--card-shadow); overflow-x:auto; }
-    .table-container .table-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:1rem; }
-    .table-container .table-header h5 { margin:0; font-weight:600; }
-
-    .badge-status { padding:0.35rem 0.75rem; border-radius:2rem; font-weight:500; font-size:0.75rem; }
-    .badge-status.available { background:#d1e7dd; color:#0a3622; }
-    .badge-status.occupied { background:#f8d7da; color:#58151c; }
-    .badge-status.maintenance { background:#fff3cd; color:#664d03; }
-    .badge-status.active { background:#d1e7dd; color:#0a3622; }
-    .badge-status.inactive { background:#e2e3e5; color:#41464b; }
-    .badge-status.partial { background:#cfe2ff; color:#084298; }
-    .badge-status.guest { background:#d1d4f0; color:#2d3b7a; }
-
-    .hostel-selector { display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1.5rem; }
-    .hostel-selector .btn { border-radius:2rem; padding:0.4rem 1.2rem; font-weight:500; border:1px solid #dee2e6; background:#fff; }
-    .hostel-selector .btn.active { background:var(--primary-color); color:#fff; border-color:var(--primary-color); }
-
-    .table-actions { display:flex; flex-wrap:wrap; gap:0.4rem; }
-    .table-actions .btn { padding:0.2rem 0.6rem; font-size:0.8rem; }
-
-    /* Login page */
-    .login-page { min-height:100vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #e8edf5 0%, #d5dce6 100%); padding:1.5rem; }
-    body.dark-mode .login-page { background:linear-gradient(135deg, #0f1117 0%, #1a1d23 100%); }
-    .login-card { width:100%; max-width:480px; border-radius:1.5rem; box-shadow:0 1.5rem 3rem rgba(0,0,0,0.12); padding:2.5rem 2rem; background:#fff; }
-    body.dark-mode .login-card { background:#1e2128; }
-    .login-card .login-icon { font-size:3.5rem; color:var(--primary-color); }
-    .login-card h3 { font-weight:700; }
-
-    /* Spinner, toast */
-    .spinner-overlay { position:fixed; inset:0; background:rgba(255,255,255,0.7); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; z-index:9999; }
-    body.dark-mode .spinner-overlay { background:rgba(0,0,0,0.7); }
-    .spinner-overlay.show { display:flex; }
-
-    .toast-container-custom { position:fixed; bottom:1.5rem; right:1.5rem; z-index:9998; display:flex; flex-direction:column; gap:0.5rem; max-width:380px; width:100%; }
-    .toast-custom { padding:0.9rem 1.2rem; border-radius:0.75rem; background:#fff; box-shadow:0 0.5rem 1.5rem rgba(0,0,0,0.15); border-left:4px solid var(--primary-color); animation:slideIn 0.3s ease; display:flex; align-items:center; gap:0.75rem; }
-    .toast-custom.success { border-left-color:#198754; }
-    .toast-custom.error { border-left-color:#dc3545; }
-    body.dark-mode .toast-custom { background:#1e2128; color:#e9ecef; }
-    @keyframes slideIn { from { opacity:0; transform:translateX(30px); } to { opacity:1; transform:translateX(0); } }
-
-    .chart-container { position:relative; height:220px; width:100%; }
-
-    @media (max-width:992px) {
-      .sidebar { transform:translateX(-100%); }
-      .sidebar.show { transform:translateX(0); }
-      .main-content { margin-left:0; }
-      .top-navbar { left:0; }
-      .top-navbar .toggle-sidebar { display:block; }
-      .top-navbar .navbar-brand-mobile { display:block; }
-      .top-navbar .navbar-brand-desktop { display:none; }
-    }
-    @media (max-width:576px) { .stat-number { font-size:1.3rem; } .page-content { padding:0.75rem; } .table-container { padding:0.75rem; } }
-
-    #appContainer { display:none; }
-    #loginContainer { display:flex; }
-    body.logged-in #loginContainer { display:none; }
-    body.logged-in #appContainer { display:block; }
+    body { background: #f4f6f9; }
+    .login-card { max-width: 420px; margin: 100px auto; }
+    .card { border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+    .hidden { display: none; }
+    .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+    .spinner-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.7); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 9998; }
+    .spinner-overlay.show { display: flex; }
   </style>
 </head>
 <body>
 
-  <!-- SPINNER -->
+  <!-- Spinner -->
   <div class="spinner-overlay" id="spinnerOverlay">
-    <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status">
-      <span class="visually-hidden">Loading...</span>
+    <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status"><span class="visually-hidden">Loading...</span></div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ======== LOGIN ======== -->
+  <div id="loginContainer">
+    <div class="container">
+      <div class="login-card card p-4">
+        <div class="text-center mb-3">
+          <i class="bi bi-building fs-1 text-primary"></i>
+          <h4>Hostel Management</h4>
+          <p class="text-muted">Sign in with your credentials</p>
+        </div>
+        <form id="loginForm">
+          <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input type="text" class="form-control" id="username" value="Hostel" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" id="password" value="123" required>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Sign In</button>
+          <div class="mt-2 text-center text-muted small">Default: Hostel / 123</div>
+        </form>
+      </div>
     </div>
   </div>
 
-  <!-- TOAST -->
-  <div class="toast-container-custom" id="toastContainer"></div>
-
-  <!-- LOGIN CONTAINER -->
-  <div id="loginContainer" class="login-page">
-    <div class="login-card">
-      <div class="text-center mb-4">
-        <i class="bi bi-building login-icon"></i>
-        <h3>Hostel Management</h3>
-        <p class="text-muted">Connect to your Google Sheet</p>
-      </div>
-      <form id="loginForm">
-        <div class="mb-3">
-          <label class="form-label">Google Sheet URL or ID</label>
-          <input type="text" class="form-control" id="spreadsheetUrl" placeholder="https://docs.google.com/spreadsheets/d/.../edit" required>
-          <div class="form-text">Paste the full URL or just the long ID.</div>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Email</label>
-          <input type="email" class="form-control" id="loginEmail" placeholder="you@example.com" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Password</label>
-          <input type="password" class="form-control" id="loginPassword" placeholder="Enter password" required>
-        </div>
-        <button type="submit" class="btn btn-primary w-100 py-2">
-          <i class="bi bi-box-arrow-in-right me-2"></i> Sign In
-        </button>
-        <div class="mt-3 text-center text-muted small">
-          Credentials are stored in the <strong>Users</strong> sheet of your spreadsheet.
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- APP CONTAINER (sidebar + navbar + content) -->
-  <div id="appContainer">
-    <!-- SIDEBAR -->
-    <nav class="sidebar" id="sidebar">
-      <div class="sidebar-brand"><i class="bi bi-building"></i><span>Hostel HMS</span></div>
-      <div class="mt-2">
-        <div class="nav-section">Main</div>
-        <a class="nav-link active" data-page="dashboard" href="#"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
-        <a class="nav-link" data-page="hostels" href="#"><i class="bi bi-buildings-fill"></i> Hostels</a>
-        <a class="nav-link" data-page="floors" href="#"><i class="bi bi-layers-fill"></i> Floors</a>
-        <a class="nav-link" data-page="rooms" href="#"><i class="bi bi-door-open-fill"></i> Rooms</a>
-        <a class="nav-link" data-page="students" href="#"><i class="bi bi-people-fill"></i> Students</a>
-        <a class="nav-link" data-page="guest-booking" href="#"><i class="bi bi-person-fill-up"></i> Guest Booking</a>
-        <a class="nav-link" data-page="wardens" href="#"><i class="bi bi-person-badge-fill"></i> Wardens</a>
-        <div class="nav-section mt-3">Reports &amp; Settings</div>
-        <a class="nav-link" data-page="reports" href="#"><i class="bi bi-file-earmark-bar-graph-fill"></i> Reports</a>
-        <a class="nav-link" data-page="settings" href="#"><i class="bi bi-gear-fill"></i> Settings</a>
-        <a class="nav-link" id="logoutBtn" href="#"><i class="bi bi-box-arrow-right"></i> Logout</a>
-      </div>
-    </nav>
-
-    <!-- TOP NAVBAR -->
-    <nav class="top-navbar" id="topNavbar">
-      <button class="toggle-sidebar" id="toggleSidebarBtn"><i class="bi bi-list"></i></button>
-      <span class="navbar-brand-desktop fw-semibold">Hostel Management System</span>
-      <span class="navbar-brand-mobile"><i class="bi bi-building"></i> HMS</span>
-      <div class="ms-auto d-flex align-items-center gap-3">
-        <span class="text-muted small d-none d-sm-inline" id="userEmailDisplay">user@example.com</span>
-        <div class="dropdown">
-          <button class="btn btn-outline-secondary btn-sm rounded-circle p-1" id="themeToggle" title="Toggle Dark Mode">
-            <i class="bi bi-moon-fill" id="themeIcon"></i>
-          </button>
-        </div>
-        <div class="dropdown">
-          <button class="btn btn-light btn-sm rounded-pill px-3 dropdown-toggle" data-bs-toggle="dropdown">
-            <i class="bi bi-person-circle"></i>
-            <span class="d-none d-sm-inline" id="userNameDisplay">User</span>
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li><span class="dropdown-item-text" id="userEmailDropdown">user@example.com</span></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" id="logoutBtn2" href="#"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-          </ul>
+  <!-- ======== APP CONTAINER (after login) ======== -->
+  <div id="appContainer" class="hidden">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="container">
+        <a class="navbar-brand" href="#"><i class="bi bi-building me-2"></i>Hostel HMS</a>
+        <div class="ms-auto d-flex align-items-center">
+          <span class="text-white me-3" id="userDisplay">Hostel</span>
+          <button class="btn btn-outline-light btn-sm" id="logoutBtn">Logout</button>
         </div>
       </div>
     </nav>
 
-    <!-- MAIN CONTENT -->
-    <div class="main-content" id="mainContent">
-      <div class="page-content" id="pageContent"></div>
+    <div class="container mt-4">
+      <!-- Navigation tabs -->
+      <ul class="nav nav-tabs mb-3" id="mainTabs">
+        <li class="nav-item"><a class="nav-link active" data-tab="dashboard" href="#">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="hostels" href="#">Hostels</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="rooms" href="#">Rooms</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="students" href="#">Students</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="settings" href="#">Settings</a></li>
+      </ul>
+
+      <!-- Tab content -->
+      <div id="tabContent">
+        <!-- Dashboard -->
+        <div id="tab-dashboard" class="tab-pane">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Dashboard</h5>
+              <p>Connect your Google Sheet and Apps Script backend in <strong>Settings</strong> to see live data.</p>
+              <div id="dashboardStats" class="mt-3">
+                <div class="row g-3">
+                  <div class="col-md-3"><div class="p-3 bg-light rounded"><h5>Hostels</h5><h3 id="statHostels">-</h3></div></div>
+                  <div class="col-md-3"><div class="p-3 bg-light rounded"><h5>Rooms</h5><h3 id="statRooms">-</h3></div></div>
+                  <div class="col-md-3"><div class="p-3 bg-light rounded"><h5>Students</h5><h3 id="statStudents">-</h3></div></div>
+                  <div class="col-md-3"><div class="p-3 bg-light rounded"><h5>Bookings</h5><h3 id="statBookings">-</h3></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hostels -->
+        <div id="tab-hostels" class="tab-pane hidden">
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span>Hostels</span>
+              <button class="btn btn-sm btn-primary" id="refreshHostels"><i class="bi bi-arrow-repeat"></i> Refresh</button>
+            </div>
+            <div class="card-body">
+              <table class="table table-striped" id="hostelsTable">
+                <thead><tr><th>Name</th><th>Type</th><th>Floors</th><th>Status</th></tr></thead>
+                <tbody id="hostelsBody"><tr><td colspan="4" class="text-muted">No data. Connect your sheet first.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rooms -->
+        <div id="tab-rooms" class="tab-pane hidden">
+          <div class="card"><div class="card-header">Rooms <button class="btn btn-sm btn-primary ms-2" id="refreshRooms"><i class="bi bi-arrow-repeat"></i> Refresh</button></div><div class="card-body"><table class="table table-striped"><thead><tr><th>Number</th><th>Category</th><th>Type</th><th>Capacity</th><th>Status</th></tr></thead><tbody id="roomsBody"><tr><td colspan="5" class="text-muted">No data</td></tr></tbody></table></div></div>
+        </div>
+
+        <!-- Students -->
+        <div id="tab-students" class="tab-pane hidden">
+          <div class="card"><div class="card-header">Students <button class="btn btn-sm btn-primary ms-2" id="refreshStudents"><i class="bi bi-arrow-repeat"></i> Refresh</button></div><div class="card-body"><table class="table table-striped"><thead><tr><th>Roll No</th><th>Name</th><th>Department</th><th>Room</th></tr></thead><tbody id="studentsBody"><tr><td colspan="4" class="text-muted">No data</td></tr></tbody></table></div></div>
+        </div>
+
+        <!-- Settings -->
+        <div id="tab-settings" class="tab-pane hidden">
+          <div class="card">
+            <div class="card-header">Settings</div>
+            <div class="card-body">
+              <form id="settingsForm">
+                <div class="mb-3">
+                  <label class="form-label">Google Apps Script Web App URL</label>
+                  <input class="form-control" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec" required>
+                  <div class="form-text">Paste the deployment URL of your Apps Script backend.</div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Google Sheet ID or URL</label>
+                  <input class="form-control" id="sheetId" placeholder="1ABC... or full URL" required>
+                  <div class="form-text">The ID of the sheet containing your data.</div>
+                </div>
+                <button type="submit" class="btn btn-success">Save Settings</button>
+                <button type="button" class="btn btn-secondary ms-2" id="testConnectionBtn">Test Connection</button>
+              </form>
+              <hr>
+              <h6>How to set up your Google Apps Script backend</h6>
+              <ol class="small">
+                <li>Create a new Google Apps Script project.</li>
+                <li>Copy the backend code from below (Code.gs).</li>
+                <li>Deploy as Web App (Execute as: Me, Access: Anyone).</li>
+                <li>Copy the deployment URL and paste it here.</li>
+                <li>Create a Google Sheet with sheets: Hostels, Rooms, Students, etc.</li>
+                <li>Paste its ID here and click Save.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- ============================================================
-  JAVASCRIPT – Full Application
+  JAVASCRIPT
   ============================================================ -->
   <script>
-    // ============================================================
-    // GLOBALS
-    // ============================================================
-    const APP = {
-      user: null,
-      spreadsheetId: null,
-      currentPage: 'dashboard',
-      currentHostelId: null,
-      darkMode: localStorage.getItem('hms_dark') === 'true',
-      charts: {},
-      dataTables: {},
-      toastTimeout: null,
+    // Fixed credentials
+    const VALID_USER = 'Hostel';
+    const VALID_PASS = '123';
+
+    let config = {
+      apiUrl: localStorage.getItem('hms_apiUrl') || '',
+      sheetId: localStorage.getItem('hms_sheetId') || ''
     };
 
-    // ============================================================
-    // UTILITY
-    // ============================================================
-    function $(sel, ctx=document) { return ctx.querySelector(sel); }
-    function $$(sel, ctx=document) { return [...ctx.querySelectorAll(sel)]; }
+    // ===== UTILITY =====
+    function showToast(msg, type='info') {
+      const container = document.getElementById('toastContainer');
+      const el = document.createElement('div');
+      el.className = `alert alert-${type} alert-dismissible fade show`;
+      el.role = 'alert';
+      el.innerHTML = msg + `<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
+    }
 
-    function showSpinner(show=true) {
+    function showSpinner(show) {
       document.getElementById('spinnerOverlay').classList.toggle('show', show);
     }
 
-    function toast(message, type='info', duration=4000) {
-      const container = document.getElementById('toastContainer');
-      const icons = { success:'bi-check-circle-fill', error:'bi-exclamation-circle-fill', warning:'bi-exclamation-triangle-fill', info:'bi-info-circle-fill' };
-      const el = document.createElement('div');
-      el.className = `toast-custom ${type}`;
-      el.innerHTML = `<i class="bi ${icons[type]||icons.info} fs-5"></i><span>${message}</span>`;
-      container.appendChild(el);
-      if (APP.toastTimeout) clearTimeout(APP.toastTimeout);
-      APP.toastTimeout = setTimeout(() => { if(el.parentNode) el.remove(); APP.toastTimeout=null; }, duration);
-      el.addEventListener('click', () => el.remove());
+    // ===== API CALL =====
+    async function callApi(func, params) {
+      if (!config.apiUrl) throw new Error('API URL not set. Go to Settings.');
+      if (!config.sheetId) throw new Error('Sheet ID not set. Go to Settings.');
+      const payload = {
+        func: func,
+        spreadsheetId: config.sheetId,
+        ...params
+      };
+      const response = await fetch(config.apiUrl, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      return data.result;
     }
 
-    function formatDate(d) { if(!d) return '-'; return new Date(d).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'}); }
-    function formatDateTime(d) { if(!d) return '-'; return new Date(d).toLocaleString('en-IN', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}); }
-
-    function getStatusBadge(status) {
-      const map = { 'Available':'available','Occupied':'occupied','Maintenance':'maintenance','Active':'active','Inactive':'inactive','Partially Occupied':'partial','Guest Room':'guest' };
-      const cls = map[status] || 'secondary';
-      return `<span class="badge-status ${cls}">${status}</span>`;
-    }
-    function getGenderIcon(g) { if(g==='Male') return '<i class="bi bi-gender-male text-primary"></i>'; if(g==='Female') return '<i class="bi bi-gender-female text-danger"></i>'; return '<i class="bi bi-gender-ambiguous"></i>'; }
-
-    function isAuthorized(requiredRole) {
-      if(!APP.user) return false;
-      const hierarchy = { 'Super Admin':4, 'Hostel Admin':3, 'Floor Warden':2, 'Viewer':1 };
-      return (hierarchy[APP.user.role]||0) >= (hierarchy[requiredRole]||0);
-    }
-    function requireAuth(role) {
-      if(!APP.user) { logout(); return false; }
-      if(role && !isAuthorized(role)) { toast('You do not have permission.', 'error'); return false; }
-      return true;
-    }
-
-    // ============================================================
-    // API – calls Google Apps Script backend
-    // ============================================================
-    const API = {
-      call(func, params) {
-        return new Promise((resolve, reject) => {
-          // Always include spreadsheetId
-          params.spreadsheetId = APP.spreadsheetId;
-          google.script.run
-            .withSuccessHandler(resolve)
-            .withFailureHandler(reject)
-            [func](params);
-        });
-      },
-      authLogin(spreadsheetId, email, password) {
-        return this.call('authLogin', { spreadsheetId, email, password });
-      },
-      getHostels() { return this.call('getHostels', {}); },
-      saveHostel(data) { return this.call('saveHostel', { data }); },
-      deleteHostel(id) { return this.call('deleteHostel', { id }); },
-      getFloors(hostelId) { return this.call('getFloors', { hostelId }); },
-      saveFloor(data) { return this.call('saveFloor', { data }); },
-      deleteFloor(id) { return this.call('deleteFloor', { id }); },
-      getRooms(hostelId, floorId) { return this.call('getRooms', { hostelId, floorId }); },
-      saveRoom(data) { return this.call('saveRoom', { data }); },
-      deleteRoom(id) { return this.call('deleteRoom', { id }); },
-      getStudents(hostelId) { return this.call('getStudents', { hostelId }); },
-      saveStudent(data) { return this.call('saveStudent', { data }); },
-      deleteStudent(id) { return this.call('deleteStudent', { id }); },
-      allocateRoom(data) { return this.call('allocateRoom', { data }); },
-      getGuestBookings(hostelId) { return this.call('getGuestBookings', { hostelId }); },
-      saveGuestBooking(data) { return this.call('saveGuestBooking', { data }); },
-      deleteGuestBooking(id) { return this.call('deleteGuestBooking', { id }); },
-      getWardens(hostelId) { return this.call('getWardens', { hostelId }); },
-      saveWarden(data) { return this.call('saveWarden', { data }); },
-      deleteWarden(id) { return this.call('deleteWarden', { id }); },
-      getDashboardStats(hostelId) { return this.call('getDashboardStats', { hostelId }); },
-      getReports(type, params) { return this.call('getReports', { type, ...params }); },
-      getSettings() { return this.call('getSettings', {}); },
-      saveSettings(data) { return this.call('saveSettings', { data }); },
-      getAuditLogs() { return this.call('getAuditLogs', {}); },
-      search(query) { return this.call('search', { query }); },
-      uploadExcel(data) { return this.call('uploadExcel', { data }); }
-    };
-
-    // ============================================================
-    // AUTH
-    // ============================================================
-    function extractSpreadsheetId(urlOrId) {
-      // If it's a full URL, extract the ID
-      const match = urlOrId.match(/\/d\/([a-zA-Z0-9-_]+)/);
-      if (match) return match[1];
-      // Otherwise assume it's already the ID
-      return urlOrId;
-    }
-
-    async function login(email, password, spreadsheetUrl) {
-      const spreadsheetId = extractSpreadsheetId(spreadsheetUrl);
-      if (!spreadsheetId) { toast('Invalid spreadsheet URL/ID', 'error'); return false; }
-      APP.spreadsheetId = spreadsheetId;
-      showSpinner(true);
-      try {
-        const resp = await API.authLogin(spreadsheetId, email, password);
-        if (!resp.success) { toast(resp.error || 'Login failed', 'error'); return false; }
-        APP.user = resp.user;
-        localStorage.setItem('hms_user', JSON.stringify(APP.user));
-        localStorage.setItem('hms_spreadsheet', spreadsheetId);
-        updateUserUI();
-        showApp();
-        toast('Welcome, ' + APP.user.name, 'success');
-        return true;
-      } catch(e) { toast('Login error: ' + e.message, 'error'); return false; }
-      finally { showSpinner(false); }
-    }
-
-    function logout() {
-      localStorage.removeItem('hms_user');
-      localStorage.removeItem('hms_spreadsheet');
-      APP.user = null;
-      APP.spreadsheetId = null;
-      showLogin();
-      // Clean up DataTables and charts
-      Object.values(APP.dataTables).forEach(t => { if(t && t.destroy) t.destroy(); });
-      APP.dataTables = {};
-      APP.charts = {};
-    }
-
-    function updateUserUI() {
-      if(!APP.user) return;
-      document.getElementById('userEmailDisplay').textContent = APP.user.email;
-      document.getElementById('userEmailDropdown').textContent = APP.user.email;
-      document.getElementById('userNameDisplay').textContent = APP.user.name || 'User';
-    }
-
-    function showLogin() {
-      document.body.classList.remove('logged-in');
-      document.getElementById('loginContainer').style.display = 'flex';
-      document.getElementById('appContainer').style.display = 'none';
-    }
-    function showApp() {
-      document.body.classList.add('logged-in');
-      document.getElementById('loginContainer').style.display = 'none';
-      document.getElementById('appContainer').style.display = 'block';
-      loadPage('dashboard');
-    }
-
-    // ============================================================
-    // PAGE LOADER & TEMPLATES (all pages)
-    // ============================================================
-    const PAGES = {};
-
-    // ----- DASHBOARD -----
-    PAGES.dashboard = function() {
-      return `
-        <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
-          <div><h4><i class="bi bi-grid-1x2-fill me-2 text-primary"></i>Dashboard</h4>
-            <nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item active">Home</li></ol></nav>
-          </div>
-          <div class="hostel-selector" id="hostelSelector">
-            <button class="btn active" data-hostel="all">All Hostels</button>
-          </div>
-        </div>
-        <div class="row g-3 mb-4" id="statsCards">
-          <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body d-flex align-items-center gap-3"><div class="stat-icon blue"><i class="bi bi-buildings"></i></div><div><div class="stat-number" id="statTotalHostels">0</div><div class="stat-label">Hostels</div></div></div></div></div>
-          <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body d-flex align-items-center gap-3"><div class="stat-icon green"><i class="bi bi-layers"></i></div><div><div class="stat-number" id="statTotalFloors">0</div><div class="stat-label">Floors</div></div></div></div></div>
-          <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body d-flex align-items-center gap-3"><div class="stat-icon purple"><i class="bi bi-door-open"></i></div><div><div class="stat-number" id="statTotalRooms">0</div><div class="stat-label">Rooms</div></div></div></div></div>
-          <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body d-flex align-items-center gap-3"><div class="stat-icon orange"><i class="bi bi-people"></i></div><div><div class="stat-number" id="statTotalStudents">0</div><div class="stat-label">Students</div></div></div></div></div>
-          <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body d-flex align-items-center gap-3"><div class="stat-icon yellow"><i class="bi bi-person-check"></i></div><div><div class="stat-number" id="statOccupiedBeds">0</div><div class="stat-label">Occupied Beds</div></div></div></div></div>
-          <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body d-flex align-items-center gap-3"><div class="stat-icon teal"><i class="bi bi-person-plus"></i></div><div><div class="stat-number" id="statVacantBeds">0</div><div class="stat-label">Vacant Beds</div></div></div></div></div>
-          <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body d-flex align-items-center gap-3"><div class="stat-icon red"><i class="bi bi-person-fill-up"></i></div><div><div class="stat-number" id="statGuestBookings">0</div><div class="stat-label">Guest Bookings</div></div></div></div></div>
-          <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body d-flex align-items-center gap-3"><div class="stat-icon pink"><i class="bi bi-person-badge"></i></div><div><div class="stat-number" id="statWardens">0</div><div class="stat-label">Wardens</div></div></div></div></div>
-        </div>
-        <div class="row g-3 mb-4">
-          <div class="col-md-6 col-lg-4"><div class="card h-100"><div class="card-header bg-transparent fw-semibold">Room Occupancy</div><div class="card-body"><div class="chart-container"><canvas id="chartRoomOccupancy"></canvas></div></div></div></div>
-          <div class="col-md-6 col-lg-4"><div class="card h-100"><div class="card-header bg-transparent fw-semibold">Gender Distribution</div><div class="card-body"><div class="chart-container"><canvas id="chartGender"></canvas></div></div></div></div>
-          <div class="col-md-6 col-lg-4"><div class="card h-100"><div class="card-header bg-transparent fw-semibold">Hostel Occupancy</div><div class="card-body"><div class="chart-container"><canvas id="chartHostelOccupancy"></canvas></div></div></div></div>
-        </div>
-        <div class="row g-3">
-          <div class="col-md-6"><div class="card"><div class="card-header bg-transparent fw-semibold">Quick Actions</div><div class="card-body"><div class="d-flex flex-wrap gap-2"><button class="btn btn-sm btn-outline-primary" onclick="loadPage('students')"><i class="bi bi-person-plus me-1"></i>Manage Students</button><button class="btn btn-sm btn-outline-success" onclick="loadPage('rooms')"><i class="bi bi-door-open me-1"></i>Manage Rooms</button><button class="btn btn-sm btn-outline-info" onclick="loadPage('guest-booking')"><i class="bi bi-person-fill-up me-1"></i>Guest Bookings</button><button class="btn btn-sm btn-outline-secondary" onclick="loadPage('reports')"><i class="bi bi-file-earmark-bar-graph me-1"></i>Reports</button></div></div></div></div>
-          <div class="col-md-6"><div class="card"><div class="card-header bg-transparent fw-semibold">Today's Overview</div><div class="card-body"><div class="d-flex justify-content-between"><span>Check-ins Today</span> <strong id="todayCheckIns">0</strong></div><div class="d-flex justify-content-between"><span>Check-outs Today</span> <strong id="todayCheckOuts">0</strong></div><div class="d-flex justify-content-between"><span>Available Rooms</span> <strong id="todayAvailableRooms">0</strong></div><div class="d-flex justify-content-between"><span>Occupied Rooms</span> <strong id="todayOccupiedRooms">0</strong></div></div></div></div>
-        </div>
-      `;
-    };
-
-    // ----- HOSTELS -----
-    PAGES.hostels = function() {
-      return `
-        <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
-          <div><h4><i class="bi bi-buildings-fill me-2 text-primary"></i>Hostels</h4><nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="#" onclick="loadPage('dashboard')">Home</a></li><li class="breadcrumb-item active">Hostels</li></ol></nav></div>
-          <div><button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#hostelModal"><i class="bi bi-plus-lg"></i> Add Hostel</button><button class="btn btn-outline-secondary btn-sm" id="uploadHostelExcel"><i class="bi bi-file-earmark-arrow-up"></i> Excel Upload</button></div>
-        </div>
-        <div class="table-container">
-          <div class="table-header"><h5>All Hostels</h5><div class="d-flex gap-2"><input class="form-control form-control-sm" id="hostelSearch" placeholder="Search..." style="width:180px;"></div></div>
-          <table class="table table-hover table-striped" id="hostelsTable"><thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Floors</th><th>Chief Warden</th><th>Phone</th><th>Status</th><th style="width:140px;">Actions</th></tr></thead><tbody id="hostelsTableBody"></tbody></table>
-        </div>
-        <div class="modal fade" id="hostelModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><i class="bi bi-buildings me-2"></i><span id="hostelModalTitle">Add Hostel</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="hostelForm"><input type="hidden" id="hostelFormId"><div class="row g-3"><div class="col-md-6"><label class="form-label">Hostel Name <span class="text-danger">*</span></label><input class="form-control" id="fHostelName" required></div><div class="col-md-6"><label class="form-label">Hostel Type <span class="text-danger">*</span></label><select class="form-select" id="fHostelType" required><option value="">Select</option><option>Boys Hostel</option><option>Girls Hostel</option></select></div><div class="col-md-3"><label class="form-label">No. of Floors</label><input class="form-control" id="fFloors" type="number" value="4"></div><div class="col-md-9"><label class="form-label">Address</label><input class="form-control" id="fAddress"></div><div class="col-md-6"><label class="form-label">Chief Warden</label><input class="form-control" id="fChiefWarden"></div><div class="col-md-6"><label class="form-label">Phone</label><input class="form-control" id="fPhone"></div><div class="col-md-6"><label class="form-label">Status</label><select class="form-select" id="fStatus"><option>Active</option><option>Inactive</option></select></div></div></form></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" id="saveHostelBtn">Save</button></div></div></div></div>
-        <div class="modal fade" id="excelUploadModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Upload Excel</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p>Columns: Hostel Name, Hostel Type, No of Floors, Address, Chief Warden, Phone, Status</p><input class="form-control" type="file" id="excelFileInput" accept=".xlsx,.xls"></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" id="processExcelBtn">Upload</button></div></div></div></div>
-      `;
-    };
-
-    // ----- FLOORS -----
-    PAGES.floors = function() {
-      return `
-        <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
-          <div><h4><i class="bi bi-layers-fill me-2 text-primary"></i>Floors</h4><nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="#" onclick="loadPage('dashboard')">Home</a></li><li class="breadcrumb-item active">Floors</li></ol></nav></div>
-          <div><button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#floorModal"><i class="bi bi-plus-lg"></i> Add Floor</button></div>
-        </div>
-        <div class="row g-3 mb-3"><div class="col-md-4"><label class="form-label">Filter by Hostel</label><select class="form-select" id="floorHostelFilter"><option value="all">All Hostels</option></select></div></div>
-        <div class="table-container">
-          <div class="table-header"><h5>All Floors</h5><div class="d-flex gap-2"><input class="form-control form-control-sm" id="floorSearch" placeholder="Search..." style="width:180px;"></div></div>
-          <table class="table table-hover table-striped" id="floorsTable"><thead><tr><th>ID</th><th>Hostel</th><th>Floor</th><th>Name</th><th>Usage</th><th>Warden</th><th>Status</th><th style="width:120px;">Actions</th></tr></thead><tbody id="floorsTableBody"></tbody></table>
-        </div>
-        <div class="modal fade" id="floorModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><i class="bi bi-layers me-2"></i><span id="floorModalTitle">Add Floor</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="floorForm"><input type="hidden" id="floorFormId"><div class="row g-3"><div class="col-md-6"><label class="form-label">Hostel <span class="text-danger">*</span></label><select class="form-select" id="fFloorHostel" required></select></div><div class="col-md-6"><label class="form-label">Floor Number <span class="text-danger">*</span></label><select class="form-select" id="fFloorNumber" required><option value="">Select</option><option>Ground</option><option>First</option><option>Second</option><option>Third</option><option>Fourth</option></select></div><div class="col-md-6"><label class="form-label">Floor Name</label><input class="form-control" id="fFloorName"></div><div class="col-md-6"><label class="form-label">Usage <span class="text-danger">*</span></label><select class="form-select" id="fFloorUsage" required><option value="">Select</option><option>Student Floor</option><option>Guest Floor</option></select></div><div class="col-md-6"><label class="form-label">Floor Warden</label><input class="form-control" id="fFloorWarden"></div><div class="col-md-6"><label class="form-label">Status</label><select class="form-select" id="fFloorStatus"><option>Active</option><option>Inactive</option></select></div></div></form></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" id="saveFloorBtn">Save</button></div></div></div></div>
-      `;
-    };
-
-    // ----- ROOMS -----
-    PAGES.rooms = function() {
-      return `
-        <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
-          <div><h4><i class="bi bi-door-open-fill me-2 text-primary"></i>Rooms</h4><nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="#" onclick="loadPage('dashboard')">Home</a></li><li class="breadcrumb-item active">Rooms</li></ol></nav></div>
-          <div><button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#roomModal"><i class="bi bi-plus-lg"></i> Add Room</button><button class="btn btn-outline-secondary btn-sm" id="uploadRoomExcel"><i class="bi bi-file-earmark-arrow-up"></i> Excel Upload</button></div>
-        </div>
-        <div class="row g-3 mb-3">
-          <div class="col-md-3"><label class="form-label">Hostel</label><select class="form-select" id="roomHostelFilter"><option value="all">All</option></select></div>
-          <div class="col-md-3"><label class="form-label">Floor</label><select class="form-select" id="roomFloorFilter"><option value="all">All</option></select></div>
-          <div class="col-md-3"><label class="form-label">Category</label><select class="form-select" id="roomCategoryFilter"><option value="all">All</option><option>Student Room</option><option>Guest Room</option></select></div>
-          <div class="col-md-3"><label class="form-label">Status</label><select class="form-select" id="roomStatusFilter"><option value="all">All</option><option>Available</option><option>Occupied</option><option>Partially Occupied</option><option>Maintenance</option></select></div>
-        </div>
-        <div class="table-container">
-          <div class="table-header"><h5>All Rooms</h5><div class="d-flex gap-2"><input class="form-control form-control-sm" id="roomSearch" placeholder="Search..." style="width:180px;"></div></div>
-          <table class="table table-hover table-striped" id="roomsTable"><thead><tr><th>ID</th><th>Hostel</th><th>Floor</th><th>Room</th><th>Category</th><th>Type</th><th>Capacity</th><th>Bathroom</th><th>AC</th><th>Status</th><th style="width:120px;">Actions</th></tr></thead><tbody id="roomsTableBody"></tbody></table>
-        </div>
-        <div class="modal fade" id="roomModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><i class="bi bi-door-open me-2"></i><span id="roomModalTitle">Add Room</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="roomForm"><input type="hidden" id="roomFormId"><div class="row g-3"><div class="col-md-4"><label class="form-label">Hostel <span class="text-danger">*</span></label><select class="form-select" id="fRoomHostel" required></select></div><div class="col-md-4"><label class="form-label">Floor <span class="text-danger">*</span></label><select class="form-select" id="fRoomFloor" required></select></div><div class="col-md-4"><label class="form-label">Room Number <span class="text-danger">*</span></label><input class="form-control" id="fRoomNumber" required></div><div class="col-md-4"><label class="form-label">Category <span class="text-danger">*</span></label><select class="form-select" id="fRoomCategory" required><option value="">Select</option><option>Student Room</option><option>Guest Room</option></select></div><div class="col-md-4"><label class="form-label">Room Type <span class="text-danger">*</span></label><select class="form-select" id="fRoomType" required><option value="">Select</option><option>Single</option><option>Double Sharing</option><option>Triple Sharing</option><option>Four Sharing</option><option>Five Sharing</option><option>Six Sharing</option></select></div><div class="col-md-4"><label class="form-label">Capacity <span class="text-danger">*</span></label><input class="form-control" id="fRoomCapacity" type="number" required></div><div class="col-md-4"><label class="form-label">Bathroom</label><select class="form-select" id="fRoomBathroom"><option>Attached Bathroom</option><option>Common Bathroom</option></select></div><div class="col-md-4"><label class="form-label">AC</label><select class="form-select" id="fRoomAC"><option>AC</option><option>Non AC</option></select></div><div class="col-md-4"><label class="form-label">Status</label><select class="form-select" id="fRoomStatus"><option>Available</option><option>Occupied</option><option>Partially Occupied</option><option>Maintenance</option></select></div><div class="col-md-12"><label class="form-label">Remarks</label><input class="form-control" id="fRoomRemarks"></div></div></form></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" id="saveRoomBtn">Save</button></div></div></div></div>
-        <div class="modal fade" id="roomExcelModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Upload Rooms Excel</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p>Columns: Room Number, Category, Type, Capacity, Bathroom, AC, Status, Remarks</p><input class="form-control" type="file" id="roomExcelInput" accept=".xlsx,.xls"></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" id="processRoomExcelBtn">Upload</button></div></div></div></div>
-      `;
-    };
-
-    // ----- STUDENTS -----
-    PAGES.students = function() {
-      return `
-        <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
-          <div><h4><i class="bi bi-people-fill me-2 text-primary"></i>Students</h4><nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="#" onclick="loadPage('dashboard')">Home</a></li><li class="breadcrumb-item active">Students</li></ol></nav></div>
-          <div><button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#studentModal"><i class="bi bi-plus-lg"></i> Add Student</button><button class="btn btn-outline-secondary btn-sm" id="uploadStudentExcel"><i class="bi bi-file-earmark-arrow-up"></i> Excel Upload</button><button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#allocateModal"><i class="bi bi-door-open"></i> Allocate Room</button></div>
-        </div>
-        <div class="row g-3 mb-3">
-          <div class="col-md-3"><label class="form-label">Hostel</label><select class="form-select" id="studentHostelFilter"><option value="all">All</option></select></div>
-          <div class="col-md-3"><label class="form-label">Department</label><select class="form-select" id="studentDeptFilter"><option value="all">All</option></select></div>
-          <div class="col-md-3"><label class="form-label">Gender</label><select class="form-select" id="studentGenderFilter"><option value="all">All</option><option>Male</option><option>Female</option></select></div>
-          <div class="col-md-3"><label class="form-label">Status</label><select class="form-select" id="studentStatusFilter"><option value="all">All</option><option>Active</option><option>Inactive</option></select></div>
-        </div>
-        <div class="table-container">
-          <div class="table-header"><h5>All Students</h5><div class="d-flex gap-2"><input class="form-control form-control-sm" id="studentSearch" placeholder="Search..." style="width:200px;"></div></div>
-          <table class="table table-hover table-striped" id="studentsTable"><thead><tr><th>Admission</th><th>Roll</th><th>Name</th><th>Gender</th><th>Department</th><th>Year</th><th>Phone</th><th>Room</th><th>Status</th><th style="width:120px;">Actions</th></tr></thead><tbody id="studentsTableBody"></tbody></table>
-        </div>
-        <div class="modal fade" id="studentModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><i class="bi bi-person me-2"></i><span id="studentModalTitle">Add Student</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="studentForm"><input type="hidden" id="studentFormId"><div class="row g-3"><div class="col-md-4"><label class="form-label">Admission No</label><input class="form-control" id="fAdmissionNo"></div><div class="col-md-4"><label class="form-label">Roll No <span class="text-danger">*</span></label><input class="form-control" id="fRollNo" required></div><div class="col-md-4"><label class="form-label">Student Name <span class="text-danger">*</span></label><input class="form-control" id="fStudentName" required></div><div class="col-md-3"><label class="form-label">Gender</label><select class="form-select" id="fStudentGender"><option>Male</option><option>Female</option></select></div><div class="col-md-3"><label class="form-label">Department</label><select class="form-select" id="fStudentDept"><option>CSE</option><option>ECE</option><option>ME</option><option>EEE</option><option>CE</option></select></div><div class="col-md-3"><label class="form-label">Year</label><select class="form-select" id="fStudentYear"><option>1st Year</option><option>2nd Year</option><option>3rd Year</option><option>4th Year</option></select></div><div class="col-md-3"><label class="form-label">Blood Group</label><select class="form-select" id="fBloodGroup"><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select></div><div class="col-md-4"><label class="form-label">Phone</label><input class="form-control" id="fStudentPhone"></div><div class="col-md-4"><label class="form-label">Parent Phone</label><input class="form-control" id="fParentPhone"></div><div class="col-md-4"><label class="form-label">Email</label><input class="form-control" id="fStudentEmail" type="email"></div><div class="col-md-12"><label class="form-label">Address</label><input class="form-control" id="fStudentAddress"></div><div class="col-md-6"><label class="form-label">Status</label><select class="form-select" id="fStudentStatus"><option>Active</option><option>Inactive</option></select></div></div></form></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" id="saveStudentBtn">Save</button></div></div></div></div>
-        <div class="modal fade" id="allocateModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><i class="bi bi-door-open me-2"></i>Allocate Room</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="allocateForm"><div class="mb-3"><label class="form-label">Student <span class="text-danger">*</span></label><select class="form-select" id="allocStudent" required></select></div><div class="mb-3"><label class="form-label">Hostel <span class="text-danger">*</span></label><select class="form-select" id="allocHostel" required></select></div><div class="mb-3"><label class="form-label">Floor <span class="text-danger">*</span></label><select class="form-select" id="allocFloor" required></select></div><div class="mb-3"><label class="form-label">Room <span class="text-danger">*</span></label><select class="form-select" id="allocRoom" required></select></div></form></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-success" id="allocBtn">Allocate</button></div></div></div></div>
-        <div class="modal fade" id="studentExcelModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Upload Students Excel</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p>Columns: Admission No, Roll No, Name, Gender, Department, Year, Phone, Parent Phone, Email, Blood Group, Address, Status</p><input class="form-control" type="file" id="studentExcelInput" accept=".xlsx,.xls"></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" id="processStudentExcelBtn">Upload</button></div></div></div></div>
-      `;
-    };
-
-    // ----- GUEST BOOKING -----
-    PAGES['guest-booking'] = function() {
-      return `
-        <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
-          <div><h4><i class="bi bi-person-fill-up me-2 text-primary"></i>Guest Booking</h4><nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="#" onclick="loadPage('dashboard')">Home</a></li><li class="breadcrumb-item active">Guest Booking</li></ol></nav></div>
-          <div><button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#guestModal"><i class="bi bi-plus-lg"></i> New Booking</button></div>
-        </div>
-        <div class="row g-3 mb-3">
-          <div class="col-md-3"><label class="form-label">Hostel</label><select class="form-select" id="guestHostelFilter"><option value="all">All</option></select></div>
-          <div class="col-md-3"><label class="form-label">Status</label><select class="form-select" id="guestStatusFilter"><option value="all">All</option><option>Confirmed</option><option>Checked In</option><option>Checked Out</option><option>Cancelled</option></select></div>
-        </div>
-        <div class="table-container">
-          <div class="table-header"><h5>All Bookings</h5><div class="d-flex gap-2"><input class="form-control form-control-sm" id="guestSearch" placeholder="Search..." style="width:180px;"></div></div>
-          <table class="table table-hover table-striped" id="guestTable"><thead><tr><th>Booking ID</th><th>Faculty</th><th>Department</th><th>Guest Name</th><th>Purpose</th><th>Check In</th><th>Check Out</th><th>Room</th><th>Status</th><th style="width:120px;">Actions</th></tr></thead><tbody id="guestTableBody"></tbody></table>
-        </div>
-        <div class="modal fade" id="guestModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><i class="bi bi-person-fill-up me-2"></i><span id="guestModalTitle">New Booking</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="guestForm"><input type="hidden" id="guestFormId"><div class="row g-3"><div class="col-md-6"><label class="form-label">Faculty Name <span class="text-danger">*</span></label><input class="form-control" id="fGuestFaculty" required></div><div class="col-md-6"><label class="form-label">Department <span class="text-danger">*</span></label><input class="form-control" id="fGuestDept" required></div><div class="col-md-6"><label class="form-label">Guest Name <span class="text-danger">*</span></label><input class="form-control" id="fGuestName" required></div><div class="col-md-6"><label class="form-label">Purpose</label><input class="form-control" id="fGuestPurpose"></div><div class="col-md-4"><label class="form-label">Hostel <span class="text-danger">*</span></label><select class="form-select" id="fGuestHostel" required></select></div><div class="col-md-4"><label class="form-label">Floor <span class="text-danger">*</span></label><select class="form-select" id="fGuestFloor" required></select></div><div class="col-md-4"><label class="form-label">Room <span class="text-danger">*</span></label><select class="form-select" id="fGuestRoom" required></select></div><div class="col-md-4"><label class="form-label">Check In Date <span class="text-danger">*</span></label><input class="form-control" id="fGuestCheckIn" type="date" required></div><div class="col-md-4"><label class="form-label">Check Out Date <span class="text-danger">*</span></label><input class="form-control" id="fGuestCheckOut" type="date" required></div><div class="col-md-4"><label class="form-label">Status</label><select class="form-select" id="fGuestStatus"><option>Confirmed</option><option>Checked In</option><option>Checked Out</option><option>Cancelled</option></select></div></div></form></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" id="saveGuestBtn">Save Booking</button></div></div></div></div>
-      `;
-    };
-
-    // ----- WARDENS -----
-    PAGES.wardens = function() {
-      return `
-        <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
-          <div><h4><i class="bi bi-person-badge-fill me-2 text-primary"></i>Wardens</h4><nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="#" onclick="loadPage('dashboard')">Home</a></li><li class="breadcrumb-item active">Wardens</li></ol></nav></div>
-          <div><button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#wardenModal"><i class="bi bi-plus-lg"></i> Add Warden</button></div>
-        </div>
-        <div class="row g-3 mb-3"><div class="col-md-4"><label class="form-label">Hostel</label><select class="form-select" id="wardenHostelFilter"><option value="all">All</option></select></div></div>
-        <div class="table-container">
-          <div class="table-header"><h5>All Wardens</h5><div class="d-flex gap-2"><input class="form-control form-control-sm" id="wardenSearch" placeholder="Search..." style="width:180px;"></div></div>
-          <table class="table table-hover table-striped" id="wardenTable"><thead><tr><th>ID</th><th>Name</th><th>Employee ID</th><th>Phone</th><th>Email</th><th>Hostel</th><th>Floor</th><th style="width:120px;">Actions</th></tr></thead><tbody id="wardenTableBody"></tbody></table>
-        </div>
-        <div class="modal fade" id="wardenModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><i class="bi bi-person-badge me-2"></i><span id="wardenModalTitle">Add Warden</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="wardenForm"><input type="hidden" id="wardenFormId"><div class="mb-3"><label class="form-label">Full Name <span class="text-danger">*</span></label><input class="form-control" id="fWardenName" required></div><div class="mb-3"><label class="form-label">Employee ID <span class="text-danger">*</span></label><input class="form-control" id="fWardenEmpId" required></div><div class="mb-3"><label class="form-label">Phone</label><input class="form-control" id="fWardenPhone"></div><div class="mb-3"><label class="form-label">Email <span class="text-danger">*</span></label><input class="form-control" id="fWardenEmail" type="email" required></div><div class="mb-3"><label class="form-label">Hostel <span class="text-danger">*</span></label><select class="form-select" id="fWardenHostel" required></select></div><div class="mb-3"><label class="form-label">Floor <span class="text-danger">*</span></label><select class="form-select" id="fWardenFloor" required></select></div></form></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" id="saveWardenBtn">Save</button></div></div></div></div>
-      `;
-    };
-
-    // ----- REPORTS -----
-    PAGES.reports = function() {
-      return `
-        <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
-          <div><h4><i class="bi bi-file-earmark-bar-graph-fill me-2 text-primary"></i>Reports</h4><nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="#" onclick="loadPage('dashboard')">Home</a></li><li class="breadcrumb-item active">Reports</li></ol></nav></div>
-        </div>
-        <div class="row g-3 mb-3">
-          <div class="col-md-3"><label class="form-label">Report Type</label><select class="form-select" id="reportType"><option value="students">Student List</option><option value="rooms">Room Occupancy</option><option value="hostels">Hostel Summary</option><option value="floors">Floor Summary</option><option value="guestBookings">Guest Booking Report</option><option value="wardens">Warden Report</option></select></div>
-          <div class="col-md-3"><label class="form-label">Hostel</label><select class="form-select" id="reportHostel"><option value="all">All</option></select></div>
-          <div class="col-md-3 d-flex align-items-end"><button class="btn btn-primary btn-sm" id="generateReportBtn"><i class="bi bi-file-earmark-text"></i> Generate</button><button class="btn btn-outline-success btn-sm ms-2" id="exportReportExcel"><i class="bi bi-file-earmark-excel"></i> Excel</button><button class="btn btn-outline-secondary btn-sm ms-2" id="printReportBtn"><i class="bi bi-printer"></i></button></div>
-        </div>
-        <div class="table-container" id="reportContainer"><div class="table-header"><h5 id="reportTitle">Student List</h5></div><div class="table-responsive"><table class="table table-hover table-striped" id="reportTable"><thead id="reportHead"></thead><tbody id="reportBody"></tbody></table></div></div>
-      `;
-    };
-
-    // ----- SETTINGS -----
-    PAGES.settings = function() {
-      return `
-        <div class="page-header d-flex flex-wrap justify-content-between align-items-center">
-          <div><h4><i class="bi bi-gear-fill me-2 text-primary"></i>Settings</h4><nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="#" onclick="loadPage('dashboard')">Home</a></li><li class="breadcrumb-item active">Settings</li></ol></nav></div>
-        </div>
-        <div class="row g-3">
-          <div class="col-md-6">
-            <div class="card"><div class="card-header bg-transparent fw-semibold">General Settings</div><div class="card-body"><form id="settingsForm"><div class="mb-3"><label class="form-label">Departments (comma separated)</label><input class="form-control" id="setDepartments"></div><div class="mb-3"><label class="form-label">Academic Year</label><input class="form-control" id="setAcademicYear"></div><div class="mb-3"><label class="form-label">Room Types (comma separated)</label><input class="form-control" id="setRoomTypes"></div><div class="mb-3"><label class="form-label">Room Categories (comma separated)</label><input class="form-control" id="setRoomCategories"></div><div class="mb-3"><label class="form-label">Hostel Types (comma separated)</label><input class="form-control" id="setHostelTypes"></div><div class="mb-3"><label class="form-label">Floor Types (comma separated)</label><input class="form-control" id="setFloorTypes"></div><div class="mb-3"><label class="form-label">Room Facilities (comma separated)</label><input class="form-control" id="setRoomFacilities"></div><button type="button" class="btn btn-primary" id="saveSettingsBtn">Save Settings</button></form></div></div>
-          </div>
-          <div class="col-md-6">
-            <div class="card"><div class="card-header bg-transparent fw-semibold">About</div><div class="card-body"><p><strong>Hostel Management System</strong> v1.0</p><p>A complete hostel management solution built with Google Apps Script and Google Sheets.</p><hr><p><i class="bi bi-person-circle me-2"></i>Logged in as: <strong id="settingsUser">${APP.user?.name || 'User'}</strong></p><p><i class="bi bi-envelope me-2"></i>${APP.user?.email || 'user@example.com'}</p><p><i class="bi bi-shield-check me-2"></i>Role: <span class="badge bg-primary">${APP.user?.role || 'Viewer'}</span></p></div></div>
-            <div class="card mt-3"><div class="card-header bg-transparent fw-semibold">Audit Logs</div><div class="card-body" style="max-height:300px;overflow-y:auto;"><div id="auditLogsContainer"><p class="text-muted">Loading...</p></div></div></div>
-          </div>
-        </div>
-      `;
-    };
-
-    // ============================================================
-    // PAGE INIT FUNCTIONS (will be implemented)
-    // ============================================================
-    // For brevity, we include only the essential ones – the full code is similar.
-    // We'll provide the complete set in the final answer.
-    // ============================================================
-
-    // We need to implement all init functions: initDashboard, initHostels, initFloors, initRooms, initStudents, initGuestBooking, initWardens, initReports, initSettings.
-    // They are exactly the same as in the previous version, but with API calls that now pass spreadsheetId automatically.
-    // We'll copy them from the previous full code.
-
-    // ============================================================
-    // ROUTER
-    // ============================================================
-    function loadPage(pageName) {
-      if (!requireAuth()) return;
-      APP.currentPage = pageName;
-      $$('.sidebar .nav-link').forEach(el => el.classList.remove('active'));
-      const link = document.querySelector(`.sidebar .nav-link[data-page="${pageName}"]`);
-      if (link) link.classList.add('active');
-
-      const container = document.getElementById('pageContent');
-      showSpinner(true);
-      setTimeout(() => {
-        const renderFn = PAGES[pageName];
-        if (renderFn) {
-          container.innerHTML = renderFn();
-          // Call init functions
-          if (pageName === 'dashboard') initDashboard();
-          else if (pageName === 'hostels') initHostels();
-          else if (pageName === 'floors') initFloors();
-          else if (pageName === 'rooms') initRooms();
-          else if (pageName === 'students') initStudents();
-          else if (pageName === 'guest-booking') initGuestBooking();
-          else if (pageName === 'wardens') initWardens();
-          else if (pageName === 'reports') initReports();
-          else if (pageName === 'settings') initSettings();
-        } else {
-          container.innerHTML = `<div class="alert alert-warning">Page not found.</div>`;
+    // ===== LOGIN =====
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value.trim();
+      if (u === VALID_USER && p === VALID_PASS) {
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('appContainer').classList.remove('hidden');
+        document.getElementById('userDisplay').textContent = u;
+        // Load saved settings
+        if (config.apiUrl) document.getElementById('apiUrl').value = config.apiUrl;
+        if (config.sheetId) document.getElementById('sheetId').value = config.sheetId;
+        // Show default tab
+        switchTab('dashboard');
+        showToast('Login successful', 'success');
+        // Auto‑fetch if settings exist
+        if (config.apiUrl && config.sheetId) {
+          fetchDashboardStats();
+          fetchHostels();
+          fetchRooms();
+          fetchStudents();
         }
-        showSpinner(false);
-      }, 200);
-    }
-
-    // ============================================================
-    // DARK MODE
-    // ============================================================
-    function toggleDarkMode() {
-      APP.darkMode = !APP.darkMode;
-      document.body.classList.toggle('dark-mode', APP.darkMode);
-      localStorage.setItem('hms_dark', String(APP.darkMode));
-      document.getElementById('themeIcon').className = APP.darkMode ? 'bi-sun-fill' : 'bi-moon-fill';
-    }
-
-    // ============================================================
-    // INITIALIZATION
-    // ============================================================
-    document.addEventListener('DOMContentLoaded', async function() {
-      // Dark mode
-      if (APP.darkMode) { document.body.classList.add('dark-mode'); document.getElementById('themeIcon').className = 'bi-sun-fill'; }
-      document.getElementById('themeToggle').addEventListener('click', toggleDarkMode);
-
-      // Sidebar toggle
-      document.getElementById('toggleSidebarBtn').addEventListener('click', function() {
-        document.getElementById('sidebar').classList.toggle('show');
-      });
-      document.querySelectorAll('.sidebar .nav-link').forEach(link => {
-        link.addEventListener('click', function(e) {
-          const page = this.dataset.page;
-          if (page) { e.preventDefault(); loadPage(page); if (window.innerWidth <= 992) document.getElementById('sidebar').classList.remove('show'); }
-          if (this.id === 'logoutBtn' || this.id === 'logoutBtn2') { e.preventDefault(); logout(); }
-        });
-      });
-      document.getElementById('logoutBtn2').addEventListener('click', logout);
-
-      // Login
-      document.getElementById('loginForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const spreadsheetUrl = document.getElementById('spreadsheetUrl').value.trim();
-        const email = document.getElementById('loginEmail').value.trim();
-        const password = document.getElementById('loginPassword').value.trim();
-        if (!spreadsheetUrl || !email || !password) { toast('Please fill all fields', 'warning'); return; }
-        await login(email, password, spreadsheetUrl);
-      });
-
-      // Check saved session
-      const savedUser = localStorage.getItem('hms_user');
-      const savedSpreadsheet = localStorage.getItem('hms_spreadsheet');
-      if (savedUser && savedSpreadsheet) {
-        try {
-          APP.user = JSON.parse(savedUser);
-          APP.spreadsheetId = savedSpreadsheet;
-          // Verify login by calling a lightweight endpoint (e.g., getHostels)
-          const resp = await API.getHostels();
-          if (resp && !resp.error) {
-            updateUserUI();
-            showApp();
-            return;
-          }
-        } catch(e) { /* ignore */ }
-        // If verification fails, clear storage
-        localStorage.removeItem('hms_user');
-        localStorage.removeItem('hms_spreadsheet');
+      } else {
+        showToast('Invalid username or password', 'danger');
       }
-      showLogin();
     });
 
-    // ============================================================
-    // NOW INCLUDE ALL THE INIT FUNCTIONS (copied from previous version)
-    // ============================================================
-    // Since they are lengthy, we'll add them in the final code.
-    // For brevity, I'll indicate they are present.
-    // In the final answer, they will be fully included.
-    // ============================================================
+    // ===== LOGOUT =====
+    document.getElementById('logoutBtn').addEventListener('click', function() {
+      document.getElementById('appContainer').classList.add('hidden');
+      document.getElementById('loginContainer').style.display = 'block';
+      document.getElementById('username').value = '';
+      document.getElementById('password').value = '';
+      showToast('Logged out', 'info');
+    });
 
-    // ============================================================
-    // PLACEHOLDER FOR INIT FUNCTIONS – full code will be provided.
-    // ============================================================
-    // (In the actual answer, all functions are included.)
-    // ============================================================
+    // ===== TAB SWITCHING =====
+    function switchTab(tab) {
+      // Hide all panes
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
+      // Show selected
+      const pane = document.getElementById(`tab-${tab}`);
+      if (pane) pane.classList.remove('hidden');
+      // Update nav
+      document.querySelectorAll('#mainTabs .nav-link').forEach(link => link.classList.remove('active'));
+      const activeLink = document.querySelector(`#mainTabs .nav-link[data-tab="${tab}"]`);
+      if (activeLink) activeLink.classList.add('active');
+    }
 
-    console.log('Hostel Management System loaded. Ready to connect to your spreadsheet.');
+    document.querySelectorAll('#mainTabs .nav-link').forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const tab = this.dataset.tab;
+        switchTab(tab);
+        if (tab === 'dashboard' && config.apiUrl && config.sheetId) fetchDashboardStats();
+        if (tab === 'hostels' && config.apiUrl && config.sheetId) fetchHostels();
+        if (tab === 'rooms' && config.apiUrl && config.sheetId) fetchRooms();
+        if (tab === 'students' && config.apiUrl && config.sheetId) fetchStudents();
+      });
+    });
+
+    // ===== SETTINGS SAVE =====
+    document.getElementById('settingsForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const apiUrl = document.getElementById('apiUrl').value.trim();
+      const sheetId = document.getElementById('sheetId').value.trim();
+      if (!apiUrl || !sheetId) { showToast('Please fill both fields', 'danger'); return; }
+      config.apiUrl = apiUrl;
+      config.sheetId = sheetId;
+      localStorage.setItem('hms_apiUrl', apiUrl);
+      localStorage.setItem('hms_sheetId', sheetId);
+      showToast('Settings saved', 'success');
+      // Test connection
+      testConnection();
+    });
+
+    document.getElementById('testConnectionBtn').addEventListener('click', testConnection);
+
+    async function testConnection() {
+      if (!config.apiUrl || !config.sheetId) { showToast('Save settings first', 'warning'); return; }
+      showSpinner(true);
+      try {
+        const result = await callApi('testConnection', {});
+        showToast('Connection successful!', 'success');
+        // Fetch data
+        fetchDashboardStats();
+        fetchHostels();
+        fetchRooms();
+        fetchStudents();
+      } catch (err) {
+        showToast('Connection failed: ' + err.message, 'danger');
+      } finally {
+        showSpinner(false);
+      }
+    }
+
+    // ===== FETCH FUNCTIONS =====
+    async function fetchDashboardStats() {
+      try {
+        const stats = await callApi('getDashboardStats', {});
+        document.getElementById('statHostels').textContent = stats.totalHostels || 0;
+        document.getElementById('statRooms').textContent = stats.totalRooms || 0;
+        document.getElementById('statStudents').textContent = stats.totalStudents || 0;
+        document.getElementById('statBookings').textContent = stats.totalGuestBookings || 0;
+      } catch (err) {
+        showToast('Error fetching stats: ' + err.message, 'danger');
+      }
+    }
+
+    async function fetchHostels() {
+      try {
+        const data = await callApi('getHostels', {});
+        const tbody = document.getElementById('hostelsBody');
+        if (!data || data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="text-muted">No hostels found</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(h => `<tr><td>${h.name||''}</td><td>${h.type||''}</td><td>${h.floors||0}</td><td>${h.status||'Active'}</td></tr>`).join('');
+      } catch (err) {
+        showToast('Error fetching hostels: ' + err.message, 'danger');
+      }
+    }
+
+    async function fetchRooms() {
+      try {
+        const data = await callApi('getRooms', {});
+        const tbody = document.getElementById('roomsBody');
+        if (!data || data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-muted">No rooms found</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(r => `<tr><td>${r.number||''}</td><td>${r.category||''}</td><td>${r.type||''}</td><td>${r.capacity||0}</td><td>${r.status||'Available'}</td></tr>`).join('');
+      } catch (err) {
+        showToast('Error fetching rooms: ' + err.message, 'danger');
+      }
+    }
+
+    async function fetchStudents() {
+      try {
+        const data = await callApi('getStudents', {});
+        const tbody = document.getElementById('studentsBody');
+        if (!data || data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="text-muted">No students found</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(s => `<tr><td>${s.rollNo||''}</td><td>${s.name||''}</td><td>${s.department||''}</td><td>${s.roomId||'Not allocated'}</td></tr>`).join('');
+      } catch (err) {
+        showToast('Error fetching students: ' + err.message, 'danger');
+      }
+    }
+
+    // Refresh buttons
+    document.getElementById('refreshHostels').addEventListener('click', fetchHostels);
+    document.getElementById('refreshRooms').addEventListener('click', fetchRooms);
+    document.getElementById('refreshStudents').addEventListener('click', fetchStudents);
+
+    // ===== INIT =====
+    // If already logged in (e.g., page reload), show app if credentials saved?
+    // We'll keep simple: user must log in each session.
+    console.log('Frontend ready. Login with Hostel/123.');
   </script>
+
 </body>
 </html>
