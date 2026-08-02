@@ -16,7 +16,6 @@
     .spinner-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.7); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 9998; }
     .spinner-overlay.show { display: flex; }
     .tab-pane { padding-top: 1rem; }
-    .tab-pane .card { margin-bottom: 1rem; }
     .setup-steps { background: #f8f9fa; padding: 1rem; border-radius: 8px; }
     .setup-steps code { background: #e9ecef; padding: 0.2rem 0.4rem; border-radius: 4px; }
   </style>
@@ -28,10 +27,10 @@
     <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status"><span class="visually-hidden">Loading...</span></div>
   </div>
 
-  <!-- Toast container -->
+  <!-- Toast -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <!-- ======== LOGIN ======== -->
+  <!-- LOGIN -->
   <div id="loginContainer">
     <div class="container">
       <div class="login-card card p-4">
@@ -56,7 +55,7 @@
     </div>
   </div>
 
-  <!-- ======== APP CONTAINER ======== -->
+  <!-- APP -->
   <div id="appContainer" class="hidden">
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
       <div class="container">
@@ -69,7 +68,6 @@
     </nav>
 
     <div class="container mt-4">
-      <!-- Navigation tabs -->
       <ul class="nav nav-tabs mb-3" id="mainTabs">
         <li class="nav-item"><a class="nav-link active" data-tab="dashboard" href="#">Dashboard</a></li>
         <li class="nav-item"><a class="nav-link" data-tab="hostels" href="#">Hostels</a></li>
@@ -78,7 +76,6 @@
         <li class="nav-item"><a class="nav-link" data-tab="settings" href="#">Settings</a></li>
       </ul>
 
-      <!-- Tab content -->
       <div id="tabContent">
         <!-- Dashboard -->
         <div id="tab-dashboard" class="tab-pane">
@@ -167,10 +164,14 @@
                 <div class="mt-2">
                   <p class="mb-1"><strong>Backend code (Code.gs):</strong></p>
                   <pre style="background:#e9ecef;padding:0.5rem;border-radius:4px;font-size:0.75rem;max-height:150px;overflow:auto;">function doPost(e) {
-  var data = JSON.parse(e.postData.contents);
-  var func = data.func;
-  var spreadsheetId = data.spreadsheetId;
   try {
+    if (!e || !e.postData) {
+      return ContentService.createTextOutput(JSON.stringify({ error: 'Invalid request: no data received' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    var data = JSON.parse(e.postData.contents);
+    var func = data.func;
+    var spreadsheetId = data.spreadsheetId;
     var result;
     switch(func) {
       case 'testConnection': result = { success: true }; break;
@@ -187,21 +188,9 @@
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
-function getSheetData(id, name) {
-  var sheet = SpreadsheetApp.openById(id).getSheetByName(name);
-  if(!sheet) return [];
-  var data = sheet.getDataRange().getValues();
-  var headers = data.shift();
-  return data.map(function(row) {
-    var obj = {};
-    headers.forEach(function(h,i) { obj[h] = row[i]; });
-    return obj;
-  });
-}
-function getDashboardStats(id) {
-  return { totalHostels: getSheetData(id,'Hostels').length, totalRooms: getSheetData(id,'Rooms').length, totalStudents: getSheetData(id,'Students').length, totalGuestBookings: getSheetData(id,'GuestBookings').length };
-}
-function doGet() { return ContentService.createTextOutput('Hostel API is running.').setMimeType(ContentService.MimeType.TEXT); }</pre>
+function getSheetData(id, name) { ... }
+function getDashboardStats(id) { ... }
+function doGet() { return ContentService.createTextOutput('API running.'); }</pre>
                 </div>
               </div>
             </div>
@@ -211,9 +200,6 @@ function doGet() { return ContentService.createTextOutput('Hostel API is running
     </div>
   </div>
 
-  <!-- ============================================================
-  JAVASCRIPT
-  ============================================================ -->
   <script>
     // Fixed credentials
     const VALID_USER = 'Hostel';
@@ -245,12 +231,11 @@ function doGet() { return ContentService.createTextOutput('Hostel API is running
       el.innerHTML = `<div class="alert alert-${type} mb-0">${msg}</div>`;
     }
 
-    // ===== API CALL =====
+    // ===== API CALL (with detailed error logging) =====
     async function callApi(func, params) {
       if (!config.apiUrl) throw new Error('API URL not set. Go to Settings.');
       if (!config.sheetId) throw new Error('Sheet ID not set. Go to Settings.');
 
-      // Ensure URL ends with /exec
       let url = config.apiUrl;
       if (!url.endsWith('/exec')) {
         url = url.replace(/\/$/, '') + '/exec';
@@ -262,6 +247,9 @@ function doGet() { return ContentService.createTextOutput('Hostel API is running
         ...params
       };
 
+      console.log('➡️ Calling API:', url);
+      console.log('📦 Payload:', payload);
+
       const response = await fetch(url, {
         method: 'POST',
         mode: 'cors',
@@ -270,10 +258,13 @@ function doGet() { return ContentService.createTextOutput('Hostel API is running
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const text = await response.text();
+        console.error('❌ Response error:', text);
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${text}`);
       }
 
       const data = await response.json();
+      console.log('✅ Response:', data);
       if (data.error) throw new Error(data.error);
       return data.result;
     }
@@ -290,7 +281,6 @@ function doGet() { return ContentService.createTextOutput('Hostel API is running
         return;
       }
 
-      // Update config temporarily
       config.apiUrl = apiUrl;
       config.sheetId = sheetId;
 
@@ -298,15 +288,6 @@ function doGet() { return ContentService.createTextOutput('Hostel API is running
       showSpinner(true);
 
       try {
-        // First test: GET request to check if the URL is reachable
-        let getUrl = apiUrl;
-        if (!getUrl.endsWith('/exec')) getUrl = getUrl.replace(/\/$/, '') + '/exec';
-        const getResponse = await fetch(getUrl, { method: 'GET', mode: 'cors' });
-        if (!getResponse.ok) throw new Error(`GET failed with status ${getResponse.status}`);
-        const getText = await getResponse.text();
-        console.log('GET response:', getText);
-
-        // Second test: POST to testConnection function
         const result = await callApi('testConnection', {});
         setConnectionStatus('✅ Connection successful! Data is accessible.', 'success');
         showToast('Connection successful!', 'success');
@@ -328,6 +309,10 @@ function doGet() { return ContentService.createTextOutput('Hostel API is running
         let msg = 'Connection failed: ' + err.message;
         if (err.message.includes('Failed to fetch')) {
           msg = 'Failed to reach the Apps Script URL. Make sure you have deployed the Web App with "Anyone" access and the URL is correct.';
+        } else if (err.message.includes('HTTP 404')) {
+          msg = 'The URL is not found. Check that you have deployed the script and the URL ends with /exec.';
+        } else if (err.message.includes('HTTP 403')) {
+          msg = 'Access denied. Set the Web App to "Anyone" (or your domain) in the deployment settings.';
         }
         setConnectionStatus('❌ ' + msg, 'danger');
         showToast(msg, 'danger');
@@ -345,13 +330,10 @@ function doGet() { return ContentService.createTextOutput('Hostel API is running
         document.getElementById('loginContainer').style.display = 'none';
         document.getElementById('appContainer').classList.remove('hidden');
         document.getElementById('userDisplay').textContent = u;
-        // Load saved settings
         if (config.apiUrl) document.getElementById('apiUrl').value = config.apiUrl;
         if (config.sheetId) document.getElementById('sheetId').value = config.sheetId;
-        // Show default tab
         switchTab('dashboard');
         showToast('Login successful', 'success');
-        // Auto‑fetch if settings exist
         if (config.apiUrl && config.sheetId) {
           fetchDashboardStats();
           fetchHostels();
@@ -363,7 +345,6 @@ function doGet() { return ContentService.createTextOutput('Hostel API is running
       }
     });
 
-    // ===== LOGOUT =====
     document.getElementById('logoutBtn').addEventListener('click', function() {
       document.getElementById('appContainer').classList.add('hidden');
       document.getElementById('loginContainer').style.display = 'block';
@@ -372,7 +353,6 @@ function doGet() { return ContentService.createTextOutput('Hostel API is running
       showToast('Logged out', 'info');
     });
 
-    // ===== TAB SWITCHING =====
     function switchTab(tab) {
       document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
       const pane = document.getElementById(`tab-${tab}`);
@@ -394,10 +374,9 @@ function doGet() { return ContentService.createTextOutput('Hostel API is running
       });
     });
 
-    // ===== SETTINGS SAVE =====
     document.getElementById('settingsForm').addEventListener('submit', function(e) {
       e.preventDefault();
-      testConnection(); // Save & test in one go
+      testConnection();
     });
 
     document.getElementById('testConnectionBtn').addEventListener('click', testConnection);
@@ -410,9 +389,7 @@ function doGet() { return ContentService.createTextOutput('Hostel API is running
         document.getElementById('statRooms').textContent = stats.totalRooms || 0;
         document.getElementById('statStudents').textContent = stats.totalStudents || 0;
         document.getElementById('statBookings').textContent = stats.totalGuestBookings || 0;
-      } catch (err) {
-        console.error('Dashboard stats error:', err);
-      }
+      } catch (err) { console.error(err); }
     }
 
     async function fetchHostels() {
@@ -424,9 +401,7 @@ function doGet() { return ContentService.createTextOutput('Hostel API is running
           return;
         }
         tbody.innerHTML = data.map(h => `<tr><td>${h.name||''}</td><td>${h.type||''}</td><td>${h.floors||0}</td><td>${h.status||'Active'}</td></tr>`).join('');
-      } catch (err) {
-        console.error('Hostels fetch error:', err);
-      }
+      } catch (err) { console.error(err); }
     }
 
     async function fetchRooms() {
@@ -438,9 +413,7 @@ function doGet() { return ContentService.createTextOutput('Hostel API is running
           return;
         }
         tbody.innerHTML = data.map(r => `<tr><td>${r.number||''}</td><td>${r.category||''}</td><td>${r.type||''}</td><td>${r.capacity||0}</td><td>${r.status||'Available'}</td></tr>`).join('');
-      } catch (err) {
-        console.error('Rooms fetch error:', err);
-      }
+      } catch (err) { console.error(err); }
     }
 
     async function fetchStudents() {
@@ -452,23 +425,17 @@ function doGet() { return ContentService.createTextOutput('Hostel API is running
           return;
         }
         tbody.innerHTML = data.map(s => `<tr><td>${s.rollNo||''}</td><td>${s.name||''}</td><td>${s.department||''}</td><td>${s.roomId||'Not allocated'}</td></tr>`).join('');
-      } catch (err) {
-        console.error('Students fetch error:', err);
-      }
+      } catch (err) { console.error(err); }
     }
 
-    // Refresh buttons
     document.getElementById('refreshHostels').addEventListener('click', fetchHostels);
     document.getElementById('refreshRooms').addEventListener('click', fetchRooms);
     document.getElementById('refreshStudents').addEventListener('click', fetchStudents);
 
     // ===== INIT =====
-    // Prefill settings if saved
     if (config.apiUrl) document.getElementById('apiUrl').value = config.apiUrl;
     if (config.sheetId) document.getElementById('sheetId').value = config.sheetId;
-
     console.log('Frontend ready. Login with Hostel/123.');
   </script>
-
 </body>
 </html>
